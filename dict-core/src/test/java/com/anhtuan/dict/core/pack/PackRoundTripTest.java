@@ -75,6 +75,28 @@ class PackRoundTripTest {
     }
 
     @Test
+    @DisplayName("khoá trùng: lookup() luôn trả về mục đầu tiên, không phụ thuộc số khoá")
+    void lookupIsStableAcrossDuplicateKeys() {
+        // Loi that da gap: binary search roi xuong BAT KY muc nao trong nhom khoa trung, va
+        // cai nao con tuy tong so khoa trong file. Them mot nguon tu dien lam doi ket qua tra
+        // cua mot tu khong lien quan.
+        List<Entry> entries = new java.util.ArrayList<>(TestEntries.mini());
+        try (PackReader reader = writeAndOpen(entries)) {
+            assertEquals("bờ sông, bờ đê",
+                    reader.lookup("bank").orElseThrow().senses().getFirst().glosses().getFirst());
+        }
+        // Them 50 muc tu khong lien quan -> so khoa doi han, ket qua tra "bank" phai y nguyen
+        for (int i = 0; i < 50; i++) {
+            entries.add(TestEntries.entry("zzz" + i, null,
+                    List.of(TestEntries.sense("danh từ", "rác " + i)), List.of()));
+        }
+        try (PackReader reader = writeAndOpen(entries)) {
+            assertEquals("bờ sông, bờ đê",
+                    reader.lookup("bank").orElseThrow().senses().getFirst().glosses().getFirst());
+        }
+    }
+
+    @Test
     @DisplayName("contains() khong can giai nen block")
     void containsWorksOnNormalizedKeys() {
         try (PackReader reader = writeAndOpen(TestEntries.mini())) {

@@ -108,8 +108,15 @@ public final class PackReader implements Closeable {
 
     /** Tra cuu chinh xac. Chuoi dau vao duoc chuan hoa san nen goi truc tiep tu UI cung duoc. */
     public Optional<Entry> lookup(String headword) {
-        int i = indexOfKey(TextNormalizer.normalizeHeadword(headword));
-        return i < 0 ? Optional.empty() : Optional.of(entryOfKey(i));
+        String key = TextNormalizer.normalizeHeadword(headword);
+        int i = indexOfKey(key);
+        if (i < 0) return Optional.empty();
+        // Khoa co the trung (muc tu dong am, hoac nhieu nguon cung co tu nay). Binary search
+        // roi xuong BAT KY cai nao trong nhom, va cai nao con phu thuoc vao tong so khoa
+        // trong file - nghia la them mot nguon tu dien co the lam doi ket qua tra mot tu
+        // khong lien quan. Phai lui ve dau nhom de ket qua on dinh va luon la muc tu chinh.
+        while (i > 0 && keyAt(i - 1).equals(key)) i--;
+        return Optional.of(entryOfKey(i));
     }
 
     /**
