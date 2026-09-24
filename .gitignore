@@ -4,6 +4,8 @@ target/
 
 /data/*.txt
 /data/build/
+# Kho cau song ngu tai ve luc hoc bang xac suat (100 MB+), sinh lai duoc
+/corpus/
 /docs
 
 # IDE
