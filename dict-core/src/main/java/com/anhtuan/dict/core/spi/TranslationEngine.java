@@ -13,8 +13,13 @@ import java.util.List;
  */
 public interface TranslationEngine {
 
-    /** Ten engine hien cho nguoi dung chon. */
+    /** Ma engine, dung trong cau hinh va log. */
     String engineId();
+
+    /** Ten hien cho nguoi dung chon trong UI. */
+    default String displayName() {
+        return engineId();
+    }
 
     /**
      * Dich mot cau tieng Anh sang tieng Viet.
