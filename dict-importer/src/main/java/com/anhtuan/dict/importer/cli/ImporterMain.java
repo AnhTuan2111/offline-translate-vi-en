@@ -5,6 +5,10 @@ import com.anhtuan.dict.core.index.IndexWriter;
 import com.anhtuan.dict.core.model.Entry;
 import com.anhtuan.dict.core.nlp.TextNormalizer;
 import com.anhtuan.dict.core.pack.PackWriter;
+import com.anhtuan.dict.core.source.DictSource;
+import com.anhtuan.dict.core.source.SourceCatalog;
+import com.anhtuan.dict.core.spi.DictParser;
+import com.anhtuan.dict.importer.parser.TsvDictParser;
 import com.anhtuan.dict.importer.parser.AnhViet109KParser;
 
 import java.nio.file.Files;
@@ -68,7 +72,9 @@ public final class ImporterMain {
             }
             case "build" -> {
                 if (args.length < 3) { usage(); System.exit(2); }
-                build(source, Path.of(args[2]));
+                List<Path> extra = new ArrayList<>();
+                for (int i = 3; i < args.length; i++) extra.add(Path.of(args[i]));
+                build(source, Path.of(args[2]), extra);
             }
             default -> { usage(); System.exit(2); }
         }
@@ -118,19 +124,49 @@ public final class ImporterMain {
         }
     }
 
-    /** Sinh dict.pack + ba file index vao {@code outDir}. */
-    private static void build(Path source, Path outDir) throws Exception {
+    /** Cac dinh dang doc duoc. Them dinh dang moi = them mot dong o day (PLAN.md F5). */
+    private static List<DictParser> parsers() {
+        return List.of(new AnhViet109KParser(), new TsvDictParser());
+    }
+
+    /** Sinh dict.pack + index + sources.tsv vao {@code outDir}, tu mot hoac nhieu nguon. */
+    private static void build(Path source, Path outDir, List<Path> extraSources) throws Exception {
         Files.createDirectories(outDir);
 
-        System.out.println("Doc " + source.getFileName() + " ...");
+        List<Path> allSources = new ArrayList<>();
+        allSources.add(source);
+        allSources.addAll(extraSources);
+
         long t0 = System.nanoTime();
-        AnhViet109KParser parser = new AnhViet109KParser();
         List<Entry> entries = new ArrayList<>(120_000);
-        try (Stream<Entry> stream = parser.parse(source, 0)) {
-            stream.forEach(entries::add);
+        List<DictSource> catalog = new ArrayList<>(allSources.size());
+
+        for (int id = 0; id < allSources.size(); id++) {
+            Path file = allSources.get(id);
+            if (!Files.isRegularFile(file)) {
+                System.err.println("Bo qua, khong thay file: " + file);
+                continue;
+            }
+            DictParser parser = parsers().stream()
+                    .filter(pp -> pp.canParse(file))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "khong doc duoc dinh dang cua " + file));
+
+            System.out.println("Doc " + file.getFileName() + "  [" + parser.formatId() + "] ...");
+            int before = entries.size();
+            try (Stream<Entry> stream = parser.parse(file, id)) {
+                stream.forEach(entries::add);
+            }
+            int count = entries.size() - before;
+            long malformed = parser instanceof AnhViet109KParser av ? av.malformedLineCount() : 0;
+            System.out.printf("  %,d entry%s%n", count,
+                    malformed > 0 ? String.format(", %,d dong loi", malformed) : "");
+            catalog.add(new DictSource(id, displayName(file), parser.formatId(),
+                    file.getFileName().toString(), count, true, id));
         }
-        System.out.printf("  %,d entry, %,d dong loi, %,d ms%n",
-                entries.size(), parser.malformedLineCount(), ms(t0));
+        System.out.printf("  tong %,d entry tu %d nguon, %,d ms%n",
+                entries.size(), catalog.size(), ms(t0));
 
         System.out.println("Ghi dict.pack ...");
         long t1 = System.nanoTime();
@@ -158,6 +194,9 @@ public final class ImporterMain {
                 com.anhtuan.dict.core.nlp.ViCompounds.loadIfPresent(wordList).size(),
                 mb(wordListSize));
 
+        SourceCatalog.of(catalog).save(outDir.resolve(SourceCatalog.FILE_NAME));
+        System.out.printf("  %-14s %,7d nguon%n", SourceCatalog.FILE_NAME, catalog.size());
+
         long total = packStats.fileSize() + wordListSize;
         for (IndexWriter.Stats s : idx) total += s.fileSize();
         System.out.printf("TONG DU LIEU : %s  (ngan sach PLAN.md: <= 11 MB)%n", mb(total));
@@ -184,6 +223,13 @@ public final class ImporterMain {
         System.out.println();
     }
 
+    /** Ten hien cho nguoi dung: bo duoi file, giu nguyen phan con lai. */
+    private static String displayName(Path file) {
+        String name = file.getFileName().toString();
+        int dot = name.lastIndexOf('.');
+        return dot > 0 ? name.substring(0, dot) : name;
+    }
+
     static long ms(long startNanos) {
         return (System.nanoTime() - startNanos) / 1_000_000;
     }
@@ -197,7 +243,8 @@ public final class ImporterMain {
                 Cach dung:
                   stats  <file.txt>              in thong ke, doi chieu PLAN.md muc 3
                   dump   <file.txt> <headword>   in mot muc tu
-                  build  <file.txt> <outDir>     sinh dict.pack + """
+                  build  <file.txt> <outDir> [nguon2 nguon3 ...]
+                                                 sinh dict.pack + """
                 + IndexFormat.VI_INDEX + " + " + IndexFormat.VI_NODIAC_INDEX
                 + " + " + IndexFormat.TRIGRAM_INDEX + """
 

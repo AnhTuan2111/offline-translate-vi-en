@@ -47,7 +47,10 @@ final class SearchCommand {
              InvertedIndex viNo = InvertedIndex.open(dataDir.resolve(IndexFormat.VI_NODIAC_INDEX));
              InvertedIndex tri = InvertedIndex.open(dataDir.resolve(IndexFormat.TRIGRAM_INDEX))) {
 
-            LookupService lookup = new LookupService(pack);
+            var catalog = com.anhtuan.dict.core.source.SourceCatalog.loadOrDefault(
+                    dataDir.resolve(com.anhtuan.dict.core.source.SourceCatalog.FILE_NAME),
+                    "mac dinh", pack.entryCount());
+            LookupService lookup = new LookupService(pack, catalog);
             switch (mode) {
                 case "en" -> {
                     var entries = lookup.lookupAll(query);
@@ -74,6 +77,7 @@ final class SearchCommand {
                             ViCompounds.loadIfPresent(dataDir.resolve(ViCompounds.FILE_NAME));
                     var search = new ReverseSearchService(pack, vi, viNo, tri, compounds,
                             LexicalPrior.openIfPresent(dataDir.resolve(LexiconFormat.FILE_NAME)));
+                    search.setCatalog(catalog);
                     List<ReverseSearchService.Hit> hits = search.searchVietnamese(query, 15);
                     List<String> suggestions = search.suggestVietnamese(query, 3);
                     if (!suggestions.isEmpty()) {

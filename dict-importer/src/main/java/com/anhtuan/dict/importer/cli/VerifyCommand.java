@@ -59,7 +59,10 @@ final class VerifyCommand {
              InvertedIndex tri = InvertedIndex.open(dataDir.resolve(IndexFormat.TRIGRAM_INDEX))) {
 
             long heapAfter = usedHeap();
-            LookupService lookup = new LookupService(reader);
+            var catalog = com.anhtuan.dict.core.source.SourceCatalog.loadOrDefault(
+                    dataDir.resolve(com.anhtuan.dict.core.source.SourceCatalog.FILE_NAME),
+                    "mac dinh", reader.entryCount());
+            LookupService lookup = new LookupService(reader, catalog);
             Set<String> starters = reader.multiWordStarters();
             LexicalPrior prior =
                     LexicalPrior.openIfPresent(dataDir.resolve(LexiconFormat.FILE_NAME));
