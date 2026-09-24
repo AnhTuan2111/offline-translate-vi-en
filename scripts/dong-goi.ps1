@@ -13,6 +13,8 @@
 param(
     [ValidateSet("app-image", "msi", "exe")][string]$Type = "app-image",
     [switch]$Zip,
+    # Phien ban ghi vao bo cai va hien trong app. Bo trong thi lay tu pom (bo duoi -SNAPSHOT).
+    [string]$Version,
     # Kem theo mo hinh dich may no-ron (~98 MB mo hinh + ~15 MB thu vien ONNX Runtime).
     # Khong bat thi ban dong goi khong co AI, va o "dung mo hinh AI" khong hien ra.
     [switch]$WithNmt
@@ -21,7 +23,16 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path $PSScriptRoot -Parent
 Set-Location $root
 
-$appName = "TuDienOffline"
+# Hai BAN PHAT HANH tu cung mot ma nguon, khac nhau duy nhat o cho co mang mo hinh AI hay
+# khong. Ten khac nhau de cai song song duoc va de nguoi dung nhin la biet minh dang tai gi.
+$edition = if ($WithNmt) { "ai" } else { "thuong" }
+$appName = if ($WithNmt) { "TuDienOffline-AI" } else { "TuDienOffline" }
+
+if (-not $Version) {
+    $pom = [xml](Get-Content (Join-Path $root "pom.xml"))
+    $Version = ($pom.project.version -replace '-SNAPSHOT$', '')
+}
+Write-Host "==> Ban '$edition', phien ban $Version" -ForegroundColor Cyan
 $dist    = Join-Path $root "dist"
 $stage   = Join-Path $dist "input"
 $dataDir = Join-Path $root "data\build"
@@ -31,7 +42,7 @@ if (-not (Test-Path (Join-Path $dataDir "dict.pack"))) {
 }
 
 Write-Host "==> Bien dich va dong goi jar..." -ForegroundColor Cyan
-& mvn -q -DskipTests package
+& mvn -q -DskipTests package "-Ddict.edition=$edition"
 if ($LASTEXITCODE -ne 0) { throw "mvn package that bai" }
 
 # --- dung thu muc nguyen lieu ---
@@ -105,7 +116,7 @@ Write-Host "==> jpackage --type $Type ..." -ForegroundColor Cyan
 $jpArgs = @(
     "--type", $Type,
     "--name", $appName,
-    "--app-version", "0.1.0",
+    "--app-version", $Version,
     "--vendor", "AnhTuan2111",
     "--description", "Tu dien va dich offline Anh - Viet",
     "--input", $stage,
@@ -132,7 +143,7 @@ $exe = Get-ChildItem $out -Recurse -Filter "$appName.exe" | Select-Object -First
 if ($exe) { Write-Host "    Chay bang: $($exe.FullName)" -ForegroundColor Green }
 
 if ($Zip -and $Type -eq "app-image") {
-    $zipPath = Join-Path $dist "$appName-0.1.0-windows.zip"
+    $zipPath = Join-Path $dist "$appName-$Version-windows.zip"
     if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
     Compress-Archive -Path (Join-Path $out $appName) -DestinationPath $zipPath
     $zipMb = (Get-Item $zipPath).Length / 1MB
