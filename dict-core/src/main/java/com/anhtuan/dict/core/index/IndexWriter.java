@@ -4,6 +4,7 @@ import com.anhtuan.dict.core.model.Entry;
 import com.anhtuan.dict.core.model.Idiom;
 import com.anhtuan.dict.core.model.Sense;
 import com.anhtuan.dict.core.nlp.TextNormalizer;
+import com.anhtuan.dict.core.nlp.ViCompounds;
 import com.anhtuan.dict.core.pack.Utf8Compare;
 import com.anhtuan.dict.core.pack.VarInt;
 
@@ -20,8 +21,10 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 /**
@@ -67,9 +70,21 @@ public final class IndexWriter {
      *
      * @return so lieu tung file, de CLI in ra doi chieu tieu chi nghiem thu M3
      */
+    /** So lan mot phuong an phai lap lai thi moi duoc coi la tu ghep that. */
+    public static final int MIN_COMPOUND_COUNT = 3;
+
     public static List<Stats> build(Path targetDir, List<Entry> entries) {
         List<Entry> sorted = new ArrayList<>(entries);
         sorted.sort(Comparator.comparing(Entry::headwordNorm, Utf8Compare.COMPARATOR));
+
+        // Rut danh sach tu ghep tieng Viet TU CHINH TU DIEN. Danh sach nay KHONG di vao
+        // index: da do thu ca hai cach, nhet tu ghep thanh term rieng lam hai file index
+        // phong tu 4,3 MB len 6,3 MB ma thu tu ket qua gan nhu khong khac. Ly do: he so do
+        // phu truy van (binh phuong) von da lam gan het viec ma tu ghep dinh lam. Danh sach
+        // chi duoc dung o buoc XEP LAI, noi no thuc su tao ra khac biet - xem
+        // ReverseSearchService.
+        Set<String> compoundWords = mineCompounds(sorted, MIN_COMPOUND_COUNT);
+        ViCompounds.write(targetDir.resolve(ViCompounds.FILE_NAME), compoundWords);
 
         List<Stats> stats = new ArrayList<>(3);
         stats.add(writeIndex(targetDir.resolve(IndexFormat.VI_INDEX), sorted,
@@ -79,6 +94,45 @@ public final class IndexWriter {
         stats.add(writeIndex(targetDir.resolve(IndexFormat.TRIGRAM_INDEX), sorted,
                 e -> TrigramIndex.trigrams(e.headwordNorm())));
         return stats;
+    }
+
+    /**
+     * Tim tu ghep tieng Viet bang cach dem cac PHUONG AN dich lap lai.
+     *
+     * <p>Moi phuong an trong mot dong nghia la mot don vi dich: dong "- trông nom, chăm sóc"
+     * cho hai don vi. Phuong an dai 2-3 am tiet ma lap lai o nhieu muc tu khac nhau thi gan
+     * nhu chac chan la mot tu ghep that, khong phai mot cum ngau nhien.
+     *
+     * <p>Do tren 200.060 dong nghia cua nguon: nguong 3 lan cho 16.592 tu, du ca "chăm sóc",
+     * "ngân hàng", "kế hoạch", "máy tính". Ha xuong 2 lan thi duoc 31.438 tu nhung bat dau
+     * lan cac cum ngau nhien; len 4 lan thi con 10.585 va bat dau sot tu that.
+     */
+    public static Set<String> mineCompounds(List<Entry> entries, int minCount) {
+        Map<String, Integer> count = new HashMap<>(1 << 17);
+        for (Entry e : entries) {
+            for (Sense s : e.senses()) for (String g : s.glosses()) countAlternatives(count, g);
+            for (Idiom i : e.idioms()) for (String g : i.glosses()) countAlternatives(count, g);
+        }
+        Set<String> out = new HashSet<>(count.size() / 4);
+        for (Map.Entry<String, Integer> en : count.entrySet()) {
+            if (en.getValue() >= minCount) out.add(en.getKey());
+        }
+        return out;
+    }
+
+    private static void countAlternatives(Map<String, Integer> count, String gloss) {
+        for (String alt : TextNormalizer.glossAlternatives(gloss)) {
+            List<String> syllables = TextNormalizer.splitTokens(alt);
+            if (syllables.size() < 2 || syllables.size() > ViCompounds.MAX_SYLLABLES) continue;
+            boolean allLetters = true;
+            for (String syl : syllables) {
+                for (int i = 0; i < syl.length(); i++) {
+                    if (!Character.isLetter(syl.charAt(i))) { allLetters = false; break; }
+                }
+                if (!allLetters) break;
+            }
+            if (allLetters) count.merge(String.join(" ", syllables), 1, Integer::sum);
+        }
     }
 
     /**

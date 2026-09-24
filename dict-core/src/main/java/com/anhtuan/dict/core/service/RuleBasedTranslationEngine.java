@@ -351,19 +351,9 @@ public final class RuleBasedTranslationEngine implements TranslationEngine {
         return best != null ? best : fallback;
     }
 
-    /**
-     * Tach mot dong nghia thanh cac phuong an rieng:
-     * "cho, biếu, tặng, ban" -&gt; [cho, biếu, tặng, ban].
-     */
+    /** Xem {@link TextNormalizer#glossAlternatives} - de o day cho goi cho gon. */
     static List<String> alternatives(String gloss) {
-        if (gloss == null) return List.of();
-        String cleaned = gloss.replaceAll("\\([^)]*\\)", " ").replaceAll("\\[[^]]*]", " ");
-        List<String> out = new ArrayList<>(4);
-        for (String part : cleaned.split("[,;]")) {
-            String v = part.replaceAll("\\s+", " ").trim();
-            if (!v.isEmpty()) out.add(v);
-        }
-        return out;
+        return TextNormalizer.glossAlternatives(gloss);
     }
 
     /**
@@ -371,26 +361,22 @@ public final class RuleBasedTranslationEngine implements TranslationEngine {
      * cach dung, khong phai nghia. Nhet vao cau dich thi thanh rac.
      */
     private static boolean isJunk(String gloss) {
-        if (gloss == null || gloss.isBlank()) return true;
-        if (gloss.indexOf('<') >= 0) return true;
-        return shorten(gloss).isBlank();
+        return LookupService.isJunkGloss(gloss) || shorten(gloss).isBlank();
     }
 
     /**
      * Mot dong nghia trong tu dien la ca mot chum dong nghia kem chu thich:
      * "giữ vững, giữ không cho đổ, giữ không cho hạ (máy...)". Trong cau dich chi lay
-     * phuong an dau, bo chu thich trong ngoac - nguoi doc can MOT tu o dung cho do.
+     * phuong an dau - nguoi doc can MOT tu o dung cho do.
+     *
+     * <p>Chi dung lam duong lui khi khong co bang xac suat; co bang thi
+     * {@link #pickBest} cham diem tung phuong an va chon cai dung hon.
      */
     static String shorten(String gloss) {
         if (gloss == null) return "";
-        String s = gloss.replaceAll("\\([^)]*\\)", " ").replaceAll("\\[[^]]*]", " ");
-        int cut = s.length();
-        for (String sep : new String[] {",", ";"}) {
-            int at = s.indexOf(sep);
-            if (at > 0) cut = Math.min(cut, at);
-        }
-        s = s.substring(0, cut).replaceAll("\\s+", " ").trim();
-        return s.isEmpty() ? gloss.replaceAll("\\s+", " ").trim() : s;
+        List<String> alts = alternatives(gloss);
+        if (!alts.isEmpty()) return alts.getFirst();
+        return gloss.replaceAll("\\s+", " ").trim();
     }
 
     // ------------------------------------------------------------------ buoc 4: luat ngu phap

@@ -74,6 +74,25 @@ public final class TextNormalizer {
         return out;
     }
 
+    /**
+     * Tach mot dong nghia thanh cac PHUONG AN dich rieng:
+     * "cho, biếu, tặng, ban" -&gt; [cho, biếu, tặng, ban].
+     *
+     * <p>Moi phuong an la mot don vi dich doc lap. Dung o ba cho: cham diem tung phuong an
+     * bang bang xac suat, rut danh sach tu ghep tieng Viet, va hien nghia ngan trong cau dich.
+     */
+    public static java.util.List<String> glossAlternatives(String gloss) {
+        if (gloss == null) return java.util.List.of();
+        String cleaned = gloss.replaceAll("\\([^)]*\\)", " ")
+                .replaceAll("\\[[^]]*]", " ");
+        java.util.List<String> out = new java.util.ArrayList<>(4);
+        for (String part : cleaned.split("[,;]")) {
+            String v = part.replaceAll("\\s+", " ").trim();
+            if (!v.isEmpty()) out.add(v);
+        }
+        return out;
+    }
+
     public static String stripBom(String s) {
         return (s != null && !s.isEmpty() && s.charAt(0) == BOM) ? s.substring(1) : s;
     }
