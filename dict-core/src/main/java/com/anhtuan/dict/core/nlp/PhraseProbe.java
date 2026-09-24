@@ -29,6 +29,17 @@ public final class PhraseProbe {
     public record Match(int wordCount, String key) {}
 
     /**
+     * Dai tu lam tan ngu / so huu. Cum dong tu KHONG BAO GIO ket thuc bang nhung tu nay:
+     * trong "gave me a book" thi "me" la tan ngu, khong phai mot phan cua cum dong tu.
+     *
+     * <p>Nguon co thuc su chua dong "!give me" (mot thán tu, nghia "tôi thích"), va neu
+     * khong chan thi cau tren bi cat thanh "gave me" + "a book" roi dich sai hoan toan.
+     */
+    private static final Set<String> OBJECT_PRONOUNS = Set.of(
+            "me", "you", "him", "her", "us", "them", "it",
+            "my", "your", "his", "its", "our", "their");
+
+    /**
      * Tim cum DAI NHAT bat dau tai {@code from}.
      *
      * <p>Thu n = 4, 3, 2 tu roi dung ngay khi khop - dai nhat thang, nho vay
@@ -44,6 +55,7 @@ public final class PhraseProbe {
      * @param inDict  ham kiem tra mot khoa co trong tu dien hay khong (PackReader::contains)
      * @return cum dai nhat, hoac null neu khong co cum nao
      */
+
     public static Match longestMatch(List<String> words, int from,
                                      Set<String> starters, Predicate<String> inDict) {
         String first = words.get(from);
@@ -56,6 +68,7 @@ public final class PhraseProbe {
 
         int maxN = Math.min(MAX_PHRASE_WORDS, words.size() - from);
         for (int n = maxN; n >= 2; n--) {
+            if (OBJECT_PRONOUNS.contains(words.get(from + n - 1))) continue;
             for (String head : firstForms) {
                 StringBuilder sb = new StringBuilder(32).append(head);
                 for (int k = 1; k < n; k++) sb.append(' ').append(words.get(from + k));

@@ -3,6 +3,7 @@ package com.anhtuan.dict.core.service;
 import com.anhtuan.dict.core.model.Candidate;
 import com.anhtuan.dict.core.model.Segment;
 import com.anhtuan.dict.core.model.SegmentKind;
+import com.anhtuan.dict.core.nlp.FunctionWords;
 import com.anhtuan.dict.core.nlp.PhraseProbe;
 import com.anhtuan.dict.core.nlp.TextNormalizer;
 import com.anhtuan.dict.core.nlp.Tokenizer;
@@ -83,29 +84,55 @@ public final class DictionaryGlossEngine implements TranslationEngine {
             PhraseProbe.Match match =
                     PhraseProbe.longestMatch(words, wi, phraseStarters, lookup::contains);
             if (match != null) {
-                int lastWord = wi + match.wordCount() - 1;
-                Tokenizer.Token lastToken = tokens.get(wordToToken.get(lastWord));
                 var phraseEntries = lookup.lookupAll(match.key());
                 List<Candidate> candidates = phraseEntries.isEmpty()
                         ? List.of()
                         : lookup.phraseCandidatesOf(phraseEntries, match.key());
-                out.add(new Segment(sentence.substring(t.start(), lastToken.end()),
-                        t.start(), lastToken.end(), SegmentKind.PHRASE, candidates));
-                ti = wordToToken.get(lastWord) + 1;
-                wi = lastWord + 1;
-                continue;
+                // Cum chi co nghia rac thi coi nhu KHONG khop: tra tung tu con hon dua ra
+                // mot chuoi vo nghia ("very good" -> "<vt> vg rất tốt" trong nguon).
+                if (candidates.stream().allMatch(c -> LookupService.isJunkGloss(c.gloss()))) {
+                    match = null;
+                }
+                if (match != null) {
+                    int lastWord = wi + match.wordCount() - 1;
+                    Tokenizer.Token lastToken = tokens.get(wordToToken.get(lastWord));
+                    out.add(new Segment(sentence.substring(t.start(), lastToken.end()),
+                            t.start(), lastToken.end(), SegmentKind.PHRASE, candidates));
+                    ti = wordToToken.get(lastWord) + 1;
+                    wi = lastWord + 1;
+                    continue;
+                }
             }
 
             Optional<LookupService.Resolution> res = lookup.resolve(words.get(wi));
             if (res.isPresent()) {
                 out.add(new Segment(t.text(), t.start(), t.end(), SegmentKind.WORD,
-                        lookup.candidatesOf(res.get().entries())));
+                        withFunctionWord(t.text(), lookup.candidatesOf(res.get().entries()))));
             } else {
                 out.add(new Segment(t.text(), t.start(), t.end(), SegmentKind.UNKNOWN, List.of()));
             }
             ti++;
             wi++;
         }
+        return out;
+    }
+
+    /**
+     * Voi TU CHUC NANG, dua nghia da dich cung len lam nghia dau.
+     *
+     * <p>Tu dien dich {@code he} thanh "đàn ông; con đực" (nghia duoc viet ky nhat cua muc tu
+     * do) va {@code the} thanh "cái, con, người...". Deu dung theo nghia tu dien va deu vo
+     * dung trong mot cau. Cac nghia tu dien van con nguyen o phia sau de nguoi dung xem.
+     */
+    private static List<Candidate> withFunctionWord(String source, List<Candidate> dictionary) {
+        FunctionWords.Fw fw = FunctionWords.get(source);
+        if (fw == null) return dictionary;
+        String vi = fw.vi().isEmpty()
+                ? "(" + source.toLowerCase(java.util.Locale.ROOT) + " — tiếng Việt không cần dịch)"
+                : fw.vi();
+        List<Candidate> out = new ArrayList<>(dictionary.size() + 1);
+        out.add(new Candidate(source, vi, "từ chức năng", 2.0));
+        out.addAll(dictionary);
         return out;
     }
 

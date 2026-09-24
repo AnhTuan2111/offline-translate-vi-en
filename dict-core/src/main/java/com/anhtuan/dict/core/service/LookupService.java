@@ -9,6 +9,7 @@ import com.anhtuan.dict.core.nlp.TextNormalizer;
 import com.anhtuan.dict.core.pack.PackReader;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -66,6 +67,14 @@ public final class LookupService {
         return direct.isEmpty() ? Optional.empty() : Optional.of(new Resolution(norm, direct, false));
     }
 
+    /**
+     * Nghia hong cua nguon: con sot markup ("&lt;vt&gt; vg rất tốt"), hoac chi la chu thich
+     * cach dung chu khong phai nghia. Dung chung cho ca engine dich lan bo loc khop cum.
+     */
+    public static boolean isJunkGloss(String gloss) {
+        return gloss == null || gloss.isBlank() || gloss.indexOf('<') >= 0;
+    }
+
     private static boolean hasGloss(List<Entry> entries) {
         for (Entry e : entries) {
             for (Sense s : e.senses()) if (!s.glosses().isEmpty()) return true;
@@ -99,23 +108,30 @@ public final class LookupService {
      * TU LOAI khac nhau truoc (danh tu / dong tu), thay vi loanh quanh trong cung mot sense.
      */
     public List<Candidate> candidatesOf(List<Entry> entries) {
-        List<Candidate> out = new ArrayList<>(MAX_CANDIDATES);
-        double score = 1.0;
+        List<Candidate> primary = new ArrayList<>(MAX_CANDIDATES);
+        List<Candidate> rest = new ArrayList<>(MAX_CANDIDATES);
         for (Entry e : entries) {
             for (Sense s : e.senses()) {
+                // Do "day dan" cua nhom nghia: tu dien viet ky nghia nao thi do la nghia
+                // hay dung. @school co hai nhom danh tu - "đàn cá" (1 nghia, 0 vi du) va
+                // "trường học" (6 nghia, nhieu vi du). Xep theo thu tu file thi ra "đàn cá".
+                double weight = s.glosses().size() + s.examples().size();
                 String g = s.primaryGloss();
-                if (g != null) out.add(new Candidate(e.headword(), g, s.pos(), score));
-                score *= 0.9;
-            }
-        }
-        for (Entry e : entries) {
-            for (Sense s : e.senses()) {
+                if (g != null) primary.add(new Candidate(e.headword(), g, s.pos(), weight));
                 List<String> glosses = s.glosses();
-                for (int i = 1; i < glosses.size() && out.size() < MAX_CANDIDATES; i++) {
-                    out.add(new Candidate(e.headword(), glosses.get(i), s.pos(), score));
-                    score *= 0.9;
+                for (int i = 1; i < glosses.size(); i++) {
+                    rest.add(new Candidate(e.headword(), glosses.get(i), s.pos(), weight - i * 0.01));
                 }
             }
+        }
+        primary.sort(Comparator.comparingDouble(Candidate::score).reversed());
+        rest.sort(Comparator.comparingDouble(Candidate::score).reversed());
+
+        List<Candidate> out = new ArrayList<>(MAX_CANDIDATES);
+        out.addAll(primary);
+        for (Candidate c : rest) {
+            if (out.size() >= MAX_CANDIDATES) break;
+            out.add(c);
         }
         return out.size() <= MAX_CANDIDATES ? out : out.subList(0, MAX_CANDIDATES);
     }

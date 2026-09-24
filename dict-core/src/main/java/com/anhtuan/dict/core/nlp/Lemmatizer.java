@@ -113,6 +113,34 @@ public final class Lemmatizer {
             Map.entry("elder", "old"), Map.entry("eldest", "old")
     );
 
+    /**
+     * Cac dang QUA KHU bat quy tac. Tach rieng khoi bang tren vi bang tren gom ca so nhieu
+     * ("mice") va so sanh ("better") - nhung thu khong lien quan gi den thi.
+     * Dung de chen "đã" vao cau dich (RuleBasedTranslationEngine).
+     */
+    private static final Set<String> PAST_FORMS = Set.of(
+            "was", "were", "been", "had", "did", "done", "went", "gone", "made", "said",
+            "took", "taken", "came", "gave", "given", "got", "gotten", "saw", "seen",
+            "knew", "known", "thought", "brought", "bought", "caught", "taught", "fought",
+            "sought", "found", "felt", "kept", "left", "lost", "meant", "met", "paid",
+            "ran", "sat", "sent", "slept", "sold", "spent", "stood", "told", "understood",
+            "won", "wrote", "written", "spoke", "spoken", "broke", "broken", "chose",
+            "chosen", "drove", "driven", "ate", "eaten", "fell", "fallen", "flew", "flown",
+            "forgot", "forgotten", "grew", "grown", "held", "heard", "hid", "hidden",
+            "led", "lain", "rode", "ridden", "rose", "risen", "sang", "sung", "shook",
+            "shaken", "shot", "shown", "sank", "sunk", "stole", "stolen", "struck",
+            "swam", "swum", "threw", "thrown", "woke", "woken", "wore", "worn", "built",
+            "burnt", "dealt", "dug", "drank", "drunk", "fed", "fled", "froze", "frozen",
+            "hung", "knelt", "lent", "lit", "rang", "rung", "shone", "slid", "stuck",
+            "swept", "swore", "sworn", "wept");
+
+    /** Tu nay co phai dang qua khu khong - de cau dich biet luc nao can chen "đã". */
+    public static boolean isPastForm(String word) {
+        if (word == null || word.length() < 3) return false;
+        String w = word.toLowerCase(java.util.Locale.ROOT);
+        return PAST_FORMS.contains(w) || (w.endsWith("ed") && w.length() > 3);
+    }
+
     /** Tu bat quy tac, hoac null neu khong co trong bang. */
     public static String irregular(String word) {
         return IRREGULAR.get(word);
