@@ -13,6 +13,9 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
+import javafx.scene.control.CheckBox;
+import javafx.concurrent.Task;
+import com.anhtuan.dict.desktop.config.NmtSupport;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
@@ -56,7 +59,12 @@ public final class MainView {
     private final ScrollPane resultScroll = new ScrollPane(resultHolder);
     private final Label status = new Label();
     private final java.util.Map<Mode, ToggleButton> modeButtons = new java.util.EnumMap<>(Mode.class);
+    private final CheckBox useNmt = new CheckBox("Dùng mô hình AI trên máy");
     private Mode mode = Mode.WORD;
+
+    /** Engine NMT, nap lan dau khi nguoi dung bat. null = chua nap. */
+    private com.anhtuan.dict.nmt.OnnxNmtEngine nmtEngine;
+    private boolean nmtLoading;
 
     /** Truy van mo san luc khoi dong, lay tu tham so dong lenh. Co the rong. */
     private final String initialQuery;
@@ -107,6 +115,10 @@ public final class MainView {
      * luc do chi viec goi cung mot ham voi noi dung clipboard.
      */
     private void applyStartupQuery() {
+        // -Ddict.nmt=true bat san mo hinh AI (dung khi chup anh va kiem thu tay)
+        if (Boolean.getBoolean("dict.nmt") && NmtSupport.isAvailable(ctx.dataDir())) {
+            useNmt.setSelected(true);
+        }
         // Uu tien tham so dong lenh:  TuDienOffline.exe "give up"
         String query = initialQuery != null ? initialQuery : System.getProperty("dict.query");
         if (query == null || query.isBlank()) return;
@@ -119,7 +131,7 @@ public final class MainView {
         };
         selectModeButton();
         input.setText(query);
-        run();
+        if (useNmt.isSelected()) onNmtToggled(); else run();
     }
 
     private Node buildToolbar() {
@@ -136,7 +148,57 @@ public final class MainView {
             modeButtons.put(m, b);
             bar.getChildren().add(b);
         }
+
+        // Chi hien khi ca thu vien lan mo hinh deu co. Ban dong goi mac dinh khong kem
+        // mo hinh AI, luc do o nay bien mat va app chay y nhu cu.
+        if (NmtSupport.isAvailable(ctx.dataDir())) {
+            useNmt.getStyleClass().add("nmt-toggle");
+            useNmt.setTooltip(new javafx.scene.control.Tooltip(
+                    "Chạy một mô hình dịch máy 98 MB ngay trên máy bạn. Không cần mạng, "
+                            + "nhưng đây là AI chứ không phải tra từ điển."));
+            useNmt.setOnAction(e -> onNmtToggled());
+            bar.getChildren().add(new javafx.scene.layout.Region() {{
+                javafx.scene.layout.HBox.setHgrow(this, Priority.ALWAYS);
+            }});
+            bar.getChildren().add(useNmt);
+        }
         return bar;
+    }
+
+    /** Bat o "dung AI": nap mo hinh o luong nen roi dich lai. */
+    private void onNmtToggled() {
+        if (!useNmt.isSelected() || nmtEngine != null || nmtLoading) {
+            run();
+            return;
+        }
+        nmtLoading = true;
+        status.setText("Đang nạp mô hình AI (98 MB) ...");
+        Task<com.anhtuan.dict.nmt.OnnxNmtEngine> task = new Task<>() {
+            @Override
+            protected com.anhtuan.dict.nmt.OnnxNmtEngine call() {
+                return NmtSupport.load(ctx.dataDir()).orElse(null);
+            }
+        };
+        task.setOnSucceeded(e -> {
+            nmtLoading = false;
+            nmtEngine = task.getValue();
+            if (nmtEngine == null) {
+                useNmt.setSelected(false);
+                status.setText("Không nạp được mô hình AI.");
+            } else {
+                mode = Mode.SENTENCE;
+                selectModeButton();
+                run();
+            }
+        });
+        task.setOnFailed(e -> {
+            nmtLoading = false;
+            useNmt.setSelected(false);
+            status.setText("Không nạp được mô hình AI: " + task.getException());
+        });
+        Thread thread = new Thread(task, "nap-mo-hinh-nmt");
+        thread.setDaemon(true);
+        thread.start();
     }
 
     /** Dong bo nut khi che do bi doi tu code (bam vao ket qua, hoac -Ddict.mode). */
@@ -222,6 +284,7 @@ public final class MainView {
     }
 
     private Node translateSentence(String sentence) {
+        if (useNmt.isSelected() && nmtEngine != null) return translateWithNmt(sentence);
         var engine = ctx.sentenceEngine();
         String translated = engine.translate(sentence).getFirst().displayGloss();
         List<Segment> segments = engine.glossSegments(sentence);
@@ -255,6 +318,43 @@ public final class MainView {
         return box;
     }
 
+    /**
+     * Dich bang mo hinh no-ron. Chay o luong nen: moi cau ton 150-450 ms, du de cua so
+     * dung hinh neu lam ngay tren luong giao dien.
+     */
+    private Node translateWithNmt(String sentence) {
+        VBox box = new VBox(10);
+        box.getChildren().add(ResultRenderer.message("Đang dịch bằng mô hình AI ..."));
+
+        Task<String> task = new Task<>() {
+            @Override
+            protected String call() {
+                return nmtEngine.translate(sentence).getFirst().displayGloss();
+            }
+        };
+        long t0 = System.nanoTime();
+        task.setOnSucceeded(e -> {
+            VBox done = new VBox(10);
+            done.getChildren().add(ResultRenderer.translation(task.getValue()));
+            done.getChildren().add(ResultRenderer.message(
+                    "Bản dịch này do một mô hình AI (opus-mt-en-vi, 98 MB) chạy ngay trên máy bạn "
+                            + "tạo ra — không qua mạng, nhưng đây là AI chứ không phải tra từ điển. "
+                            + "Bỏ tick ở góc trên để quay về bản dịch bằng luật."));
+            done.getChildren().add(ResultRenderer.renderGloss(
+                    ctx.sentenceEngine().glossSegments(sentence)));
+            box.getChildren().setAll(done);
+            status.setText(String.format(Locale.ROOT,
+                    "Mô hình AI trên máy · %,d mục từ · dịch trong %.0f ms",
+                    ctx.pack().entryCount(), (System.nanoTime() - t0) / 1_000_000.0));
+        });
+        task.setOnFailed(e -> box.getChildren().setAll(
+                ResultRenderer.message("Lỗi khi chạy mô hình: " + task.getException())));
+        Thread thread = new Thread(task, "dich-nmt");
+        thread.setDaemon(true);
+        thread.start();
+        return box;
+    }
+
     /** Bam vao goi y chinh ta -> tra lai bang tu duoc goi y. */
     private void searchAgain(String query) {
         input.setText(query);
@@ -265,6 +365,11 @@ public final class MainView {
         mode = target;
         selectModeButton();
         run();
+    }
+
+    /** Tra mot tu tu ben ngoai goi vao (popup tra nhanh o khay he thong). */
+    public void lookup(String headword) {
+        openWord(headword);
     }
 
     /** Bam vao mot ket qua -> mo han muc tu do o che do tra tu. */

@@ -34,6 +34,17 @@
       <version>${javafx.version}</version>
     </dependency>
 
+    <!-- Dich bang mo hinh no-ron. <optional> nghia la: bien dich thi can, nhung KHONG tu
+         dong di theo khi dong goi. Muon ban co AI thi chay dong-goi.ps1 -WithNmt; khong thi
+         app van chay va tu an tinh nang di. Nho vay ban mac dinh khong phai keo theo
+         132 MB jar cua ONNX Runtime. -->
+    <dependency>
+      <groupId>com.anhtuan.dict</groupId>
+      <artifactId>nmt-engine</artifactId>
+      <version>${project.version}</version>
+      <optional>true</optional>
+    </dependency>
+
     <!-- KHONG co dependency nao khac. Toan bo app chi gom: dict-core (0 dep) + JavaFX.
          sqlite-jdbc se duoc them lai o M6 khi thuc su can luu lich su nguoi dung. -->
   </dependencies>
