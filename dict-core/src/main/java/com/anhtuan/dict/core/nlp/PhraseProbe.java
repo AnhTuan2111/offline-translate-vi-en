@@ -1,19 +1,68 @@
 package com.anhtuan.dict.core.nlp;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Predicate;
+
 /**
- * TODO(M4) - Khop cum tu longest-match trong cau (PLAN.md 8.1 buoc 2, AD-5).
+ * Khop cum tu longest-match trong cau (PLAN.md 8.1 buoc 2, AD-5).
  *
- * VI SAO KHONG DUNG AHO-CORASICK:
- * KEYS trong pack da sap xep san nen binary search lam duoc viec nay ma
- * KHONG ton them RAM. Aho-Corasick voi 11.941 cum se ngon ~80 MB heap.
+ * <p>VI SAO KHONG DUNG AHO-CORASICK: KEYS trong pack da sap xep san nen binary search
+ * lam duoc viec nay ma khong ton them mot byte RAM nao. Aho-Corasick voi 24.585 cum
+ * se ngon khoang 80 MB heap.
  *
- * Toi uu bat buoc: HashSet phraseStarters (4.670 tu, ~39 KB) chua tu MO DAU
- * cua moi cum. Tu hien tai khong nam trong set thi bo qua probe hoan toan -
- * cat duoc ~90% so lan binary search.
+ * <p>Toi uu bat buoc: HashSet {@code starters} chua tu MO DAU cua moi cum (5.949 tu,
+ * ~48 KB). Tu hien tai khong nam trong set thi bo qua probe hoan toan - cat duoc
+ * khoang 90% so lan binary search.
  */
 public final class PhraseProbe {
     private PhraseProbe() {}
 
     /** So tu toi da cua mot cum can thu. Da do: 99% cum co 4 tu tro xuong. */
     public static final int MAX_PHRASE_WORDS = 4;
+
+    /**
+     * @param wordCount so tu cua cum da khop
+     * @param key       khoa thuc su tim thay trong tu dien (co the da lemma hoa tu dau)
+     */
+    public record Match(int wordCount, String key) {}
+
+    /**
+     * Tim cum DAI NHAT bat dau tai {@code from}.
+     *
+     * <p>Thu n = 4, 3, 2 tu roi dung ngay khi khop - dai nhat thang, nho vay
+     * "look after" khong bi cat thanh "look" + "after".
+     *
+     * <p>Ngoai dang nguyen van, con thu dang DA LEMMA HOA cua tu dau tien: cau
+     * "He gave up his job" phai khop duoc "give up", vi trong tu dien chi co
+     * "!to give up" chu khong co "gave up".
+     *
+     * @param words   cac tu da chuan hoa (lowercase, khong dau cau)
+     * @param from    vi tri bat dau thu
+     * @param starters tu mo dau cua moi cum co trong tu dien, xem PackReader#multiWordStarters
+     * @param inDict  ham kiem tra mot khoa co trong tu dien hay khong (PackReader::contains)
+     * @return cum dai nhat, hoac null neu khong co cum nao
+     */
+    public static Match longestMatch(List<String> words, int from,
+                                     Set<String> starters, Predicate<String> inDict) {
+        String first = words.get(from);
+        List<String> firstForms = new ArrayList<>(4);
+        if (starters.contains(first)) firstForms.add(first);
+        for (String lemma : Lemmatizer.candidates(first)) {
+            if (starters.contains(lemma)) firstForms.add(lemma);
+        }
+        if (firstForms.isEmpty()) return null;                  // cat 90% so lan probe
+
+        int maxN = Math.min(MAX_PHRASE_WORDS, words.size() - from);
+        for (int n = maxN; n >= 2; n--) {
+            for (String head : firstForms) {
+                StringBuilder sb = new StringBuilder(32).append(head);
+                for (int k = 1; k < n; k++) sb.append(' ').append(words.get(from + k));
+                String key = sb.toString();
+                if (inDict.test(key)) return new Match(n, key);
+            }
+        }
+        return null;
+    }
 }
