@@ -14,6 +14,8 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
@@ -56,8 +58,12 @@ public final class MainView {
     private final java.util.Map<Mode, ToggleButton> modeButtons = new java.util.EnumMap<>(Mode.class);
     private Mode mode = Mode.WORD;
 
-    public MainView(AppContext ctx) {
+    /** Truy van mo san luc khoi dong, lay tu tham so dong lenh. Co the rong. */
+    private final String initialQuery;
+
+    public MainView(AppContext ctx, List<String> args) {
         this.ctx = ctx;
+        this.initialQuery = args == null || args.isEmpty() ? null : String.join(" ", args);
     }
 
     public void show(Stage stage) {
@@ -69,6 +75,20 @@ public final class MainView {
         Scene scene = new Scene(root, 900, 640);
         scene.getStylesheets().add(
                 MainView.class.getResource("/css/dict.css").toExternalForm());
+
+        // Ctrl+1/2/3 doi che do, Ctrl+L ve o nhap: nguoi tra tu lien tuc khong muon roi ban phim.
+        scene.getAccelerators().put(
+                new KeyCodeCombination(KeyCode.DIGIT1, KeyCombination.CONTROL_DOWN),
+                () -> switchMode(Mode.WORD));
+        scene.getAccelerators().put(
+                new KeyCodeCombination(KeyCode.DIGIT2, KeyCombination.CONTROL_DOWN),
+                () -> switchMode(Mode.SENTENCE));
+        scene.getAccelerators().put(
+                new KeyCodeCombination(KeyCode.DIGIT3, KeyCombination.CONTROL_DOWN),
+                () -> switchMode(Mode.REVERSE));
+        scene.getAccelerators().put(
+                new KeyCodeCombination(KeyCode.L, KeyCombination.CONTROL_DOWN),
+                () -> { input.requestFocus(); input.selectAll(); });
 
         stage.setTitle("Từ điển offline Anh - Việt");
         stage.setScene(scene);
@@ -87,13 +107,15 @@ public final class MainView {
      * luc do chi viec goi cung mot ham voi noi dung clipboard.
      */
     private void applyStartupQuery() {
-        String query = System.getProperty("dict.query");
+        // Uu tien tham so dong lenh:  TuDienOffline.exe "give up"
+        String query = initialQuery != null ? initialQuery : System.getProperty("dict.query");
         if (query == null || query.isBlank()) return;
-        String m = System.getProperty("dict.mode", "word").toLowerCase(Locale.ROOT);
+        String m = System.getProperty("dict.mode", "").toLowerCase(Locale.ROOT);
         mode = switch (m) {
             case "sentence" -> Mode.SENTENCE;
             case "reverse" -> Mode.REVERSE;
-            default -> Mode.WORD;
+            case "word" -> Mode.WORD;
+            default -> looksLikeSentence(query) ? Mode.SENTENCE : Mode.WORD;
         };
         selectModeButton();
         input.setText(query);
@@ -109,8 +131,7 @@ public final class MainView {
             b.setSelected(m == mode);
             b.setOnAction(e -> {
                 b.setSelected(true);                 // khong cho bo chon het
-                mode = m;
-                run();
+                switchMode(m);
             });
             modeButtons.put(m, b);
             bar.getChildren().add(b);
@@ -179,6 +200,16 @@ public final class MainView {
             box.getChildren().add(ResultRenderer.renderEntries(resolved.get().entries()));
             return box;
         }
+        // Go han mot cau vao o tra tu la chuyen thuong gap. Bao "khong co tu nay" thi dung
+        // ky thuat nhung vo dung; dich luon cau do roi noi ro minh vua lam gi thi tot hon.
+        if (looksLikeSentence(query)) {
+            VBox box = new VBox(6);
+            box.getChildren().add(ResultRenderer.message(
+                    "\"" + query + "\" là một câu, không phải một từ — đã tự chuyển sang dịch câu."));
+            box.getChildren().add(translateSentence(query));
+            return box;
+        }
+
         List<ReverseSearchService.Hit> near = ctx.search().fuzzyEnglish(query, 10);
         if (near.isEmpty()) {
             return ResultRenderer.message("Không có \"" + query + "\" và không tìm được từ nào gần giống.");
@@ -191,11 +222,16 @@ public final class MainView {
     }
 
     private Node translateSentence(String sentence) {
-        List<Segment> segments = ctx.engine().translate(sentence);
-        VBox box = new VBox(8);
+        var engine = ctx.sentenceEngine();
+        String translated = engine.translate(sentence).getFirst().displayGloss();
+        List<Segment> segments = engine.glossSegments(sentence);
+
+        VBox box = new VBox(10);
+        box.getChildren().add(ResultRenderer.translation(translated));
         box.getChildren().add(ResultRenderer.message(
-                "Đây là CHÚ GIẢI theo cụm, không phải bản dịch tự nhiên. "
-                        + "Bấm vào ô có dấu ▾ để đổi nghĩa."));
+                "Bản dịch trên do bộ luật ngữ pháp dựng ra: chọn nghĩa theo từ loại rồi sắp lại "
+                        + "trật tự tiếng Việt. Câu càng phức tạp thì càng dễ sai — đối chiếu phần "
+                        + "chú giải bên dưới, bấm ô có dấu ▾ để xem các nghĩa khác."));
         box.getChildren().add(ResultRenderer.renderGloss(segments));
         return box;
     }
@@ -208,12 +244,23 @@ public final class MainView {
         return ResultRenderer.renderHits(hits, this::openWord);
     }
 
+    private void switchMode(Mode target) {
+        mode = target;
+        selectModeButton();
+        run();
+    }
+
     /** Bam vao mot ket qua -> mo han muc tu do o che do tra tu. */
     private void openWord(String headword) {
         mode = Mode.WORD;
         selectModeButton();
         input.setText(headword);
         run();
+    }
+
+    /** Tu bon tu tro len thi coi la cau, khong phai muc tu can tra. */
+    private static boolean looksLikeSentence(String query) {
+        return query != null && query.trim().split("\s+").length >= 4;
     }
 
     private void showWelcome() {
@@ -225,6 +272,8 @@ public final class MainView {
                   · Tra từ     :  about,  give up,  acid-proof
                   · Dịch câu   :  He gave up his job because the system could not keep up
                   · Việt → Anh :  chăm sóc   (gõ không dấu "cham soc" cũng ra cùng kết quả)
+
+                Phím tắt: Ctrl+1 / Ctrl+2 / Ctrl+3 đổi chế độ, Ctrl+L về ô nhập.
                 """));
         resultHolder.getChildren().setAll(box);
         status.setText(String.format(Locale.ROOT,

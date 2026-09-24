@@ -7,6 +7,7 @@ import com.anhtuan.dict.core.pack.PackReader;
 import com.anhtuan.dict.core.service.DictionaryGlossEngine;
 import com.anhtuan.dict.core.service.LookupService;
 import com.anhtuan.dict.core.service.ReverseSearchService;
+import com.anhtuan.dict.core.service.RuleBasedTranslationEngine;
 
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;
@@ -76,15 +77,18 @@ final class SearchCommand {
                     }
                 }
                 case "sent" -> {
-                    var engine = new DictionaryGlossEngine(lookup, pack.multiWordStarters());
-                    List<Segment> segs = engine.translate(query);
-                    for (Segment s : segs) {
+                    var glossEngine = new DictionaryGlossEngine(lookup, pack.multiWordStarters());
+                    var ruleEngine = new RuleBasedTranslationEngine(glossEngine, lookup);
+
+                    out.println("  BAN DICH (luat):");
+                    out.println("    " + ruleEngine.translate(query).getFirst().displayGloss());
+                    out.println();
+                    out.println("  CHU GIAI TUNG CUM:");
+                    for (Segment s : glossEngine.translate(query)) {
                         if (s.sourceText().isBlank()) continue;
-                        out.printf("  %-18s %-9s %s%n", s.sourceText(), s.kind(),
+                        out.printf("    %-18s %-9s %s%n", s.sourceText(), s.kind(),
                                 s.displayGloss() == null ? "" : s.displayGloss());
                     }
-                    out.println();
-                    out.println("  => " + DictionaryGlossEngine.flatten(segs));
                 }
                 default -> out.println("mode phai la en | vi | sent");
             }

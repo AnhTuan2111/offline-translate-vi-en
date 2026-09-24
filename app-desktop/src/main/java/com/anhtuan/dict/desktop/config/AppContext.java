@@ -6,6 +6,7 @@ import com.anhtuan.dict.core.pack.PackReader;
 import com.anhtuan.dict.core.service.DictionaryGlossEngine;
 import com.anhtuan.dict.core.service.LookupService;
 import com.anhtuan.dict.core.service.ReverseSearchService;
+import com.anhtuan.dict.core.service.RuleBasedTranslationEngine;
 import com.anhtuan.dict.core.spi.TranslationEngine;
 
 import java.nio.file.Path;
@@ -43,7 +44,8 @@ public final class AppContext implements AutoCloseable {
 
     private final LookupService lookupService;
     private final ReverseSearchService reverseSearchService;
-    private final TranslationEngine translationEngine;
+    private final DictionaryGlossEngine glossEngine;
+    private final RuleBasedTranslationEngine sentenceEngine;
     private final Set<String> phraseStarters;
 
     private final long startupMillis;
@@ -61,7 +63,8 @@ public final class AppContext implements AutoCloseable {
                 new ReverseSearchService(pack, viIndex, viNoDiacIndex, trigramIndex);
         // Quet vung KEYS mot lan de lay 5.927 tu mo dau cum - re hon giu mot file rieng.
         this.phraseStarters = pack.multiWordStarters();
-        this.translationEngine = new DictionaryGlossEngine(lookupService, phraseStarters);
+        this.glossEngine = new DictionaryGlossEngine(lookupService, phraseStarters);
+        this.sentenceEngine = new RuleBasedTranslationEngine(glossEngine, lookupService);
 
         this.startupMillis = (System.nanoTime() - t0) / 1_000_000;
     }
@@ -82,8 +85,18 @@ public final class AppContext implements AutoCloseable {
         return reverseSearchService;
     }
 
+    /** Engine chu giai theo cum - dung cho phan chi tiet tung tu. */
     public TranslationEngine engine() {
-        return translationEngine;
+        return glossEngine;
+    }
+
+    /**
+     * Engine dich ca cau. Khai bao kieu cu the (khong phai {@link TranslationEngine}) vi UI
+     * can goi ca {@code glossSegments}. Khi cam NMT vao sau nay, cho nay doi thanh mot
+     * danh sach engine cho nguoi dung chon.
+     */
+    public RuleBasedTranslationEngine sentenceEngine() {
+        return sentenceEngine;
     }
 
     /** Thoi gian nap du lieu, hien o thanh trang thai lam bang chung do duoc. */

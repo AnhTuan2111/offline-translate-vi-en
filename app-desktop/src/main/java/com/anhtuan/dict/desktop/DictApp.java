@@ -49,7 +49,7 @@ public final class DictApp extends Application {
             stage.show();
             return;
         }
-        new MainView(ctx).show(stage);
+        new MainView(ctx, getParameters().getRaw()).show(stage);
     }
 
     @Override

@@ -126,6 +126,19 @@
 
 /* ---------- dich cau ---------- */
 
+.translation-box {
+    -fx-background-color: #1f2a33;
+    -fx-border-color: #3b6ea5;
+    -fx-border-width: 0 0 0 3;
+    -fx-padding: 12 14 12 14;
+    -fx-background-radius: 6;
+}
+
+.translation {
+    -fx-text-fill: #e8ecf2;
+    -fx-font-size: 19px;
+}
+
 .gloss-pane {
     -fx-padding: 6 0 6 0;
 }

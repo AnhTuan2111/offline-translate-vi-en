@@ -130,6 +130,21 @@ final class VerifyCommand {
             checkAboutTo(gloss);
             checkOffsets(gloss, "He gave up his job.");
 
+            section("Dich ca cau bang luat");
+            var sentenceEngine = new com.anhtuan.dict.core.service.RuleBasedTranslationEngine(
+                    gloss, lookup);
+            checkSentence(sentenceEngine, "She went to the market yesterday",
+                    new String[] {"Cô ấy", "đã", "chợ"});
+            checkSentence(sentenceEngine, "The weather is very cold today",
+                    new String[] {"Thời tiết", "rất"});
+            checkSentence(sentenceEngine, "We will not go to school tomorrow",
+                    new String[] {"sẽ không", "trường học"});
+            checkSentence(sentenceEngine, "This system does not work well",
+                    new String[] {"Hệ thống này", "không"});
+            checkSentence(sentenceEngine, "The teacher gave me a very good book",
+                    new String[] {"Giáo viên", "cho tôi", "rất tốt"});
+
+            section("M4 - hieu nang dich cau");
             String twentyWords = "The government decided to carry out a new plan because the old "
                     + "system could not keep up with the growing number of users";
             long t1 = System.nanoTime();
@@ -143,12 +158,33 @@ final class VerifyCommand {
             check("ty le tra ra nghia >= 90%", resolved * 100 >= words * 90,
                     resolved + "/" + words + " doan");
             out.println();
-            out.println("  Ket qua dich thu: " + DictionaryGlossEngine.flatten(segs));
+            out.println("  Cau vao : " + twentyWords);
+            out.println("  Dich ra : "
+                    + sentenceEngine.translate(twentyWords).getFirst().displayGloss());
 
             out.println();
             out.printf("=== %d dat / %d khong dat ===%n", passed, failed);
         }
         return failed;
+    }
+
+    /**
+     * Kiem tra cau dich CHUA cac manh bat buoc, khong so sanh nguyen van.
+     *
+     * <p>So sanh nguyen van se bien bo test thanh cai bay: doi mot nghia trong tu dien la
+     * do het. Cai can khang dinh la BO LUAT chay dung - dao trat tu, chen dau hieu thi,
+     * chon dung tu loai - chu khong phai tung chu mot.
+     */
+    private void checkSentence(com.anhtuan.dict.core.service.RuleBasedTranslationEngine engine,
+                               String english, String[] mustContain) {
+        String vi = engine.translate(english).getFirst().displayGloss();
+        boolean ok = true;
+        for (String piece : mustContain) ok &= vi != null && vi.contains(piece);
+        check("\"" + trim(english) + "\"", ok, vi);
+    }
+
+    private static String trim(String s) {
+        return s.length() <= 34 ? s : s.substring(0, 31) + "...";
     }
 
     // ------------------------------------------------------------------ cac phep kiem tra

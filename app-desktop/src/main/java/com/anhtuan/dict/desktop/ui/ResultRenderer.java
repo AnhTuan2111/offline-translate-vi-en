@@ -243,6 +243,16 @@ final class ResultRenderer {
 
     // ------------------------------------------------------------------ chung
 
+    /** Cau da dich, hien to va noi bat - day la thu nguoi dung tim den o che do dich cau. */
+    static Node translation(String text) {
+        Label l = new Label(text == null || text.isBlank() ? "(không dịch được)" : text);
+        l.getStyleClass().add("translation");
+        l.setWrapText(true);
+        VBox box = new VBox(l);
+        box.getStyleClass().add("translation-box");
+        return box;
+    }
+
     static Node message(String text) {
         Label l = styled(text, "message");
         return l;
