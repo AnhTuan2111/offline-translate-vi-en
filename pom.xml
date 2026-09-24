@@ -15,6 +15,7 @@
     <modules>
         <module>dict-core</module>
         <module>dict-importer</module>
+        <module>nmt-engine</module>
         <module>app-desktop</module>
     </modules>
 
@@ -29,6 +30,8 @@
         <!-- Spring Boot da bi go khoi app-desktop (AD-8 sua lai, xem AppContext.java).
              sqlite.version giu lai vi M6 con dung cho du lieu nguoi dung (AD-10). -->
         <sqlite.version>3.53.2.1</sqlite.version>
+        <!-- Chi module nmt-engine dung. Xem ghi chu trong nmt-engine/pom.xml. -->
+        <onnxruntime.version>1.22.0</onnxruntime.version>
 
         <surefire.plugin.version>3.5.6</surefire.plugin.version>
         <compiler.plugin.version>3.15.0</compiler.plugin.version>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.anhtuan.dict</groupId>
+    <artifactId>offline-translate-vi-en</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>nmt-engine</artifactId>
+  <name>nmt-engine</name>
+  <description>
+    Dich may no-ron chay cuc bo: opus-mt-en-vi xuat sang ONNX, chay bang ONNX Runtime.
+
+    DAY LA MODULE TUY CHON. Ung dung chay binh thuong khi khong co no - luc do dung engine
+    dich bang luat. Tach rieng ra de dict-core giu duoc zero dependency (PLAN.md muc 9) va de
+    ai khong muon dinh den mo hinh AI thi chi viec khong build module nay.
+
+    Mo hinh KHONG nam trong repo: tai rieng bang scripts/tai-model-nmt.ps1 (~101 MB).
+  </description>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.anhtuan.dict</groupId>
+      <artifactId>dict-core</artifactId>
+    </dependency>
+
+    <!-- Chay do thi ONNX. Ban chinh thuc cua Microsoft, co binding Java. -->
+    <dependency>
+      <groupId>com.microsoft.onnxruntime</groupId>
+      <artifactId>onnxruntime</artifactId>
+      <version>${onnxruntime.version}</version>
+    </dependency>
+
+    <!-- KHONG dung ai.djl.huggingface:tokenizers. Da thu: no lam sup ca JVM khi doc
+         tokenizer.json cua model nay (precompiled_charsmap = null). Tach tu duoc viet lai
+         trong MarianTokenizer.java, chua toi 150 dong va khong can thu vien native. -->
+  </dependencies>
+</project>
