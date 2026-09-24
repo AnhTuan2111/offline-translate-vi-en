@@ -182,10 +182,28 @@ public final class RuleBasedTranslationEngine implements TranslationEngine {
                 // cho nay thi "decided" bi coi la tinh tu bo nghia cho cum dang sau.
                 if (hasVerb) preferLemmaForVerb(it);
                 it.pos = Pos.VERB;
+            } else if (endsWithS(w) && subjectNounBefore(items, i)
+                    && (hasVerb || promoteToVerbViaLemma(it))) {
+                // Chu ngu + tu ket thuc bang -s = DONG TU chia ngoi thu ba, khong phai danh tu
+                // so nhieu. "the system MONITORS analytics" tung ra "máy phát hiện phóng xạ",
+                // "a patient BOOKS a slot" tung ra "sách".
+                //
+                // Phai doi hoi danh tu dung truoc o vi tri CHU NGU (co mao tu dan dat, hoac
+                // dau cau), neu khong thi "manages user ACCOUNTS" cung bi coi la dong tu -
+                // da thu va dung la hong dung kieu do.
+                it.pos = Pos.VERB;
+            } else if (prev != null && prev.isFunc(FunctionWords.Category.LIEN_TU)
+                    && hasAdj && adjectiveBefore(items, i)) {
+                // Lien tu noi hai thu CUNG LOAI: "known and STABLE" - ve trai la tinh tu thi
+                // ve phai cung la tinh tu. Khong co luat nay thi "stable" ra "chuồng ngựa".
+                it.pos = Pos.ADJ;
             } else if (prev != null && prev.isFunc(FunctionWords.Category.TRANG_TU) && hasAdj) {
                 // "very COLD", "too SMALL": sau trang tu muc do gan nhu chac chan la tinh tu
                 it.pos = Pos.ADJ;
-            } else if (next != null && next.isContent() && hasAdj) {
+            } else if (next != null && next.isContent() && hasAdj
+                    && !(prevIsArticle(prev) && endsWithS(next.source))) {
+                // Ngoai le: "a patient books..." - mao tu + X + tu chia -s thi X la chu ngu
+                // chu khong phai tinh tu bo nghia.
                 // Dung truoc mot tu noi dung khac -> gan nhu chac chan la bo nghia cho no.
                 // "the OLD system", "the GROWING number".
                 it.pos = Pos.ADJ;
@@ -266,6 +284,52 @@ public final class RuleBasedTranslationEngine implements TranslationEngine {
         return false;
     }
 
+    private static boolean prevIsArticle(Item prev) {
+        return prev != null && prev.isFunc(FunctionWords.Category.ARTICLE);
+    }
+
+    /**
+     * Ngay truoc vi tri {@code at} co phai mot danh tu dang lam CHU NGU khong.
+     * Dau hieu: danh tu do duoc dan dat boi mao tu / so huu / chi dinh, hoac dung dau cau.
+     */
+    private static boolean subjectNounBefore(List<Item> items, int at) {
+        Item prev = null;
+        int prevIndex = -1;
+        for (int i = at - 1; i >= 0; i--) {
+            if (items.get(i).dropped) continue;
+            prev = items.get(i);
+            prevIndex = i;
+            break;
+        }
+        if (prev == null || prev.pos != Pos.NOUN) return false;
+        for (int i = prevIndex - 1; i >= 0; i--) {
+            Item before = items.get(i);
+            if (before.dropped) continue;
+            return before.isFunc(FunctionWords.Category.ARTICLE,
+                    FunctionWords.Category.POSSESSIVE, FunctionWords.Category.DEMONSTRATIVE,
+                    FunctionWords.Category.QUANTIFIER);
+        }
+        return true;                                   // danh tu mo dau cau
+    }
+
+    /** Ket thuc bang -s nhung khong phai -ss (class, address... khong phai dang chia). */
+    private static boolean endsWithS(String word) {
+        return word.length() > 3 && word.endsWith("s") && !word.endsWith("ss");
+    }
+
+    /**
+     * Truoc lien tu o vi tri {@code at} co phai mot tinh tu khong (bo qua chinh lien tu do).
+     * Dung cho luat "A and B thi B cung loai voi A".
+     */
+    private static boolean adjectiveBefore(List<Item> items, int at) {
+        for (int i = at - 2; i >= 0; i--) {
+            Item before = items.get(i);
+            if (before.dropped) continue;
+            return before.pos == Pos.ADJ;
+        }
+        return false;
+    }
+
     /** Dung ngay sau chu ngu (danh tu, dai tu) hoac dau cau. */
     private static boolean afterSubject(Item prev) {
         if (prev == null) return true;
@@ -331,6 +395,19 @@ public final class RuleBasedTranslationEngine implements TranslationEngine {
             for (Candidate c : it.candidates) if (!isJunk(c.gloss())) pool.add(c);
         }
         if (pool.isEmpty()) return shorten(it.candidates.getFirst().gloss());
+
+        // Nguon do nguoi dung xep tren THANG TUYET DOI. Mot bang thuat ngu tu soan la mot
+        // quyet dinh co y cua nguoi dung; bang xac suat hoc tu phu de phim khong duoc phep
+        // de len tren no. Do that: "platform" trong bang thuat ngu la "nền tảng", nhung
+        // thong ke tu kho phu de lai thay "sân ga" hay hon - va nguoi dung thi dang doc
+        // tai lieu ky thuat.
+        int bestPriority = Integer.MAX_VALUE;
+        for (Candidate c : pool) bestPriority = Math.min(bestPriority, lookup.priorityOf(c));
+        if (bestPriority != Integer.MAX_VALUE) {
+            List<Candidate> top = new ArrayList<>(pool.size());
+            for (Candidate c : pool) if (lookup.priorityOf(c) == bestPriority) top.add(c);
+            if (!top.isEmpty()) pool = top;
+        }
 
         String fallback = shorten(pool.getFirst().gloss());
         if (!prior.isAvailable()) return fallback;

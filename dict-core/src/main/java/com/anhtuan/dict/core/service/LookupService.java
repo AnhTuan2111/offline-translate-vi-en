@@ -113,6 +113,16 @@ public final class LookupService {
         return gloss == null || gloss.isBlank() || gloss.indexOf('<') >= 0;
     }
 
+    /**
+     * Do uu tien cua nguon sinh ra candidate nay. So nho hon = nguon duoc xep tren.
+     * Candidate khong thuoc nguon nao thi xep sau cung.
+     */
+    public int priorityOf(Candidate candidate) {
+        SourceCatalog current = catalog;
+        if (current == null || candidate.sourceId() == Candidate.NO_SOURCE) return Integer.MAX_VALUE;
+        return current.priorityOf(candidate.sourceId());
+    }
+
     private static boolean hasGloss(List<Entry> entries) {
         for (Entry e : entries) {
             for (Sense s : e.senses()) if (!s.glosses().isEmpty()) return true;
@@ -159,10 +169,10 @@ public final class LookupService {
                         : Math.min(current.priorityOf(e.sourceId()), 100) * 1000;
                 double weight = s.glosses().size() + s.examples().size() - sourcePenalty;
                 String g = s.primaryGloss();
-                if (g != null) primary.add(new Candidate(e.headword(), g, s.pos(), weight));
+                if (g != null) primary.add(new Candidate(e.headword(), g, s.pos(), weight, e.sourceId()));
                 List<String> glosses = s.glosses();
                 for (int i = 1; i < glosses.size(); i++) {
-                    rest.add(new Candidate(e.headword(), glosses.get(i), s.pos(), weight - i * 0.01));
+                    rest.add(new Candidate(e.headword(), glosses.get(i), s.pos(), weight - i * 0.01, e.sourceId()));
                 }
             }
         }
@@ -192,7 +202,7 @@ public final class LookupService {
                 if (!matchesPhrase(idiom.phrase(), phraseKey)) continue;
                 for (String g : idiom.glosses()) {
                     if (out.size() >= MAX_CANDIDATES) break;
-                    out.add(new Candidate(idiom.phrase(), g, null, score));
+                    out.add(new Candidate(idiom.phrase(), g, null, score, e.sourceId()));
                     score *= 0.95;
                 }
             }

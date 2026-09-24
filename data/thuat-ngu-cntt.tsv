@@ -1,0 +1,115 @@
+# Thuật ngữ công nghệ thông tin và kỹ thuật phần mềm.
+# Nguồn thứ hai cho từ điển — nạp bằng:
+#   ImporterMain build anhviet109K.txt data/build data/thuat-ngu-cntt.tsv
+#
+# Vì sao cần: từ điển 109K là từ điển phổ thông, nên với văn bản kỹ thuật nó chọn nghĩa
+# đời thường và sai hẳn — "stable" ra "chuồng ngựa", "platform" ra "sân ga",
+# "concrete" ra "bê tông", "monitor" ra "máy phát hiện phóng xạ". Đặt nguồn này lên
+# TRÊN nguồn 109K trong cửa sổ "Nguồn từ điển" là những từ dưới đây được ưu tiên.
+#
+# Định dạng: từ tiếng Anh <TAB> nghĩa tiếng Việt <TAB> từ loại
+
+# --- từ đa nghĩa hay dịch sai nhất trong văn bản kỹ thuật ---
+stable	ổn định, không thay đổi	tính từ
+platform	nền tảng, hệ thống	danh từ
+escalate	chuyển lên cấp cao hơn, leo thang	động từ
+monitor	theo dõi, giám sát	động từ
+concrete	cụ thể, rõ ràng	tính từ
+patient	bệnh nhân, người bệnh	danh từ
+book	đặt chỗ, đặt lịch	động từ
+booking	việc đặt chỗ, lượt đặt lịch	danh từ
+server	máy chủ	danh từ
+servers	máy chủ	danh từ
+application	ứng dụng	danh từ
+session	phiên làm việc, buổi	danh từ
+slot	khung giờ, chỗ trống	danh từ
+record	bản ghi, hồ sơ	danh từ
+records	bản ghi, hồ sơ	danh từ
+role	vai trò, quyền hạn	danh từ
+roles	vai trò, quyền hạn	danh từ
+access	truy cập	động từ
+storage	lưu trữ	danh từ
+library	thư viện	danh từ
+resolve	xử lý xong, giải quyết	động từ
+critical	nghiêm trọng, nguy cấp	tính từ
+alert	cảnh báo	danh từ
+trigger	kích hoạt, sự kiện kích hoạt	danh từ
+scale	mở rộng quy mô	động từ
+support	hỗ trợ	động từ
+
+# --- kỹ thuật phần mềm ---
+stakeholder	bên liên quan	danh từ
+stakeholders	các bên liên quan	danh từ
+requirement	yêu cầu	danh từ
+requirements	các yêu cầu	danh từ
+inception	giai đoạn khởi đầu	danh từ
+iterative	lặp, theo vòng lặp	tính từ
+iteration	vòng lặp, lần lặp	danh từ
+mitigation	giảm thiểu rủi ro	danh từ
+deliverable	sản phẩm bàn giao	danh từ
+delivery	việc bàn giao	danh từ
+deployment	triển khai	danh từ
+deploy	triển khai	động từ
+maintainability	khả năng bảo trì	danh từ
+scalability	khả năng mở rộng	danh từ
+availability	khả năng sẵn sàng	danh từ
+usability	khả năng dễ dùng	danh từ
+reliability	độ tin cậy	danh từ
+throughput	thông lượng	danh từ
+latency	độ trễ	danh từ
+constraint	ràng buộc	danh từ
+trade-off	sự đánh đổi	danh từ
+architecture	kiến trúc hệ thống	danh từ
+framework	bộ khung, nền tảng lập trình	danh từ
+repository	kho lưu trữ dữ liệu	danh từ
+controller	bộ điều khiển	danh từ
+entity	thực thể	danh từ
+inheritance	kế thừa	danh từ
+association	liên kết	danh từ
+aggregation	quan hệ gộp	danh từ
+composition	quan hệ cấu thành	danh từ
+multiplicity	bội số quan hệ	danh từ
+actor	tác nhân	danh từ
+use case	ca sử dụng	danh từ
+test case	ca kiểm thử	danh từ
+testing	kiểm thử	danh từ
+debugging	gỡ lỗi	danh từ
+refactor	tái cấu trúc mã nguồn	động từ
+backlog	danh sách việc tồn	danh từ
+sprint	chặng phát triển ngắn	danh từ
+milestone	mốc công việc	danh từ
+rollback	quay lại bản trước	động từ
+precondition	điều kiện tiên quyết	danh từ
+threshold	ngưỡng	danh từ
+escalation	việc chuyển lên cấp cao hơn	danh từ
+compliance	sự tuân thủ	danh từ
+onboarding	quá trình làm quen ban đầu	danh từ
+analytics	dữ liệu phân tích	danh từ
+dashboard	bảng điều khiển	danh từ
+encryption	mã hoá	danh từ
+encrypted	đã mã hoá	tính từ
+authentication	xác thực danh tính	danh từ
+authorization	phân quyền	danh từ
+credential	thông tin đăng nhập	danh từ
+gateway	cổng kết nối	danh từ
+endpoint	điểm kết nối	danh từ
+payload	dữ liệu gửi kèm	danh từ
+concurrent	đồng thời	tính từ
+concurrency	tính đồng thời	danh từ
+peak	cao điểm	danh từ
+downtime	thời gian ngừng hoạt động	danh từ
+uptime	thời gian hoạt động liên tục	danh từ
+
+# --- y tế, theo đề bài đang thử ---
+appointment	lịch hẹn, cuộc hẹn	danh từ
+prescription	đơn thuốc	danh từ
+consultation	buổi khám, buổi tư vấn	danh từ
+counselor	chuyên viên tư vấn	danh từ
+counselors	chuyên viên tư vấn	danh từ
+therapist	nhà trị liệu	danh từ
+therapeutic	thuộc về trị liệu	tính từ
+screening	sàng lọc	danh từ
+stigma	định kiến xã hội	danh từ
+deterioration	sự xấu đi	danh từ
+intervention	sự can thiệp	danh từ
+telemedicine	khám bệnh từ xa	danh từ

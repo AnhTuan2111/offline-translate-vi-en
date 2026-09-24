@@ -155,6 +155,10 @@ public final class DictionaryGlossEngine implements TranslationEngine {
             scored.add(new Scored(c, best, i));
         }
         scored.sort((a, b) -> {
+            // Nguon uu tien hon len truoc, roi moi den diem thong ke.
+            int bySource = Integer.compare(lookup.priorityOf(a.candidate()),
+                    lookup.priorityOf(b.candidate()));
+            if (bySource != 0) return bySource;
             int cmp = Double.compare(b.score(), a.score());
             return cmp != 0 ? cmp : Integer.compare(a.order(), b.order());
         });
