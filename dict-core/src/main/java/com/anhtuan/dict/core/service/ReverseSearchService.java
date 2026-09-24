@@ -3,10 +3,12 @@ package com.anhtuan.dict.core.service;
 import com.anhtuan.dict.core.index.BM25Scorer;
 import com.anhtuan.dict.core.index.InvertedIndex;
 import com.anhtuan.dict.core.index.TrigramIndex;
+import com.anhtuan.dict.core.lexicon.LexicalPrior;
 import com.anhtuan.dict.core.model.Entry;
 import com.anhtuan.dict.core.model.Idiom;
 import com.anhtuan.dict.core.model.Sense;
 import com.anhtuan.dict.core.nlp.TextNormalizer;
+import com.anhtuan.dict.core.nlp.ViCompounds;
 import com.anhtuan.dict.core.pack.PackReader;
 
 import java.util.ArrayList;
@@ -67,13 +69,33 @@ public final class ReverseSearchService {
     private final InvertedIndex viIndex;
     private final InvertedIndex viNoDiacIndex;
     private final InvertedIndex trigramIndex;
+    private final ViCompounds compounds;
+    private final LexicalPrior prior;
 
     public ReverseSearchService(PackReader pack, InvertedIndex viIndex,
                                 InvertedIndex viNoDiacIndex, InvertedIndex trigramIndex) {
+        this(pack, viIndex, viNoDiacIndex, trigramIndex, ViCompounds.empty(), LexicalPrior.empty());
+    }
+
+    public ReverseSearchService(PackReader pack, InvertedIndex viIndex,
+                                InvertedIndex viNoDiacIndex, InvertedIndex trigramIndex,
+                                ViCompounds compounds) {
+        this(pack, viIndex, viNoDiacIndex, trigramIndex, compounds, LexicalPrior.empty());
+    }
+
+    /**
+     * @param compounds danh sach tu ghep tieng Viet. BAT BUOC phai la DUNG danh sach da dung
+     *                  luc danh chi muc, neu khong thi truy van sinh ra term ma index khong co.
+     */
+    public ReverseSearchService(PackReader pack, InvertedIndex viIndex,
+                                InvertedIndex viNoDiacIndex, InvertedIndex trigramIndex,
+                                ViCompounds compounds, LexicalPrior prior) {
         this.pack = pack;
         this.viIndex = viIndex;
         this.viNoDiacIndex = viNoDiacIndex;
         this.trigramIndex = trigramIndex;
+        this.compounds = compounds;
+        this.prior = prior;
     }
 
     /**
@@ -92,14 +114,19 @@ public final class ReverseSearchService {
      * "cam giac ngu" ngay (PLAN.md 7.1).
      */
     public List<Hit> searchVietnamese(String query, int limit) {
-        List<String> queryTokens = TextNormalizer.splitTokens(query);
-        if (queryTokens.isEmpty()) return List.of();
+        List<String> syllables = TextNormalizer.splitTokens(query);
+        if (syllables.isEmpty()) return List.of();
 
         boolean hasDiacritics = !TextNormalizer.removeDiacritics(query).equals(query);
         InvertedIndex index = hasDiacritics ? viIndex : viNoDiacIndex;
+        // Gop am tiet thanh tu ghep: go "chăm sóc" sinh them term "chăm_sóc" hiem hon han,
+        // nen tai lieu chua DUNG tu do duoc day len tren tai lieu chi chua hai am tiet roi rac.
         List<String> terms = hasDiacritics
-                ? queryTokens
-                : queryTokens.stream().map(TextNormalizer::removeDiacritics).toList();
+                ? syllables
+                : syllables.stream().map(TextNormalizer::removeDiacritics).toList();
+        // Term dung de XEP LAI co them tu ghep: dong nghia chua dung chu "chăm sóc" phai hon
+        // dong nghia chi tinh co co ca hai am tiet nam o hai cho khac nhau.
+        List<String> rerankTerms = compounds.expand(terms);
 
         BM25Scorer scorer = new BM25Scorer(index.docCount(), index.avgDocLength(),
                 BM25Scorer.DICTIONARY_B);
@@ -135,9 +162,14 @@ public final class ReverseSearchService {
         for (Map.Entry<Integer, Double> e : pool) {
             int docId = e.getKey();
             Entry entry = pack.entryAt(docId);
-            GlossMatch gm = bestGloss(entry, terms, hasDiacritics, joinedQuery);
+            GlossMatch gm = bestGloss(entry, rerankTerms, hasDiacritics, joinedQuery);
 
             double queryCoverage = (double) hitTerms.getOrDefault(docId, 1) / terms.size();
+            // Bang xac suat dich tu (7.4) dung theo chieu NGUOC: tu tieng Anh nao thuong sinh
+            // ra dung nhung am tiet nguoi dung vua go thi tu do dang duoc tim. Day la thu
+            // phan biet "government" voi "sircar" - ca hai deu co dong nghia "chính phủ",
+            // nhung chi mot trong hai tung that su xuat hien trong kho cau song ngu.
+            double reverse = 1 + 4.0 * prior.scoreGloss(entry.headwordNorm(), terms);
             double glossCoverage = gm.glossTokens() == 0
                     ? 0 : (double) gm.matchedInGloss() / gm.glossTokens();
             double prominence = prominence(index.docLength(docId));
@@ -149,6 +181,7 @@ public final class ReverseSearchService {
                     * queryCoverage * queryCoverage
                     * (0.4 + 0.6 * glossCoverage)
                     * prominence
+                    * reverse
                     * factor;
             hits.add(new Hit(entry, docId, score, gm.display() == null ? entry.headword() : gm.display(),
                     gm.gloss()));
@@ -174,6 +207,14 @@ public final class ReverseSearchService {
             if (seen.add(h.display() + " " + h.matchedGloss())) out.add(h);
         }
         return out;
+    }
+
+    /**
+     * Doan tu tieng Viet nguoi dung dinh go, khi ho go sai chinh ta.
+     * Rong nghia la truy van von da dung - khong co gi de goi y.
+     */
+    public List<String> suggestVietnamese(String query, int limit) {
+        return compounds.suggest(query, limit);
     }
 
     /**
@@ -213,8 +254,8 @@ public final class ReverseSearchService {
                               boolean exactGloss, boolean phraseHit, boolean inPrimaryGloss) {}
 
     /** Dong nghia khop nhat cua mot entry, kem cac co dung de tinh diem. */
-    private static GlossMatch bestGloss(Entry entry, List<String> terms,
-                                        boolean hasDiacritics, String joinedQuery) {
+    private GlossMatch bestGloss(Entry entry, List<String> terms,
+                                 boolean hasDiacritics, String joinedQuery) {
         GlossMatch best = null;
         boolean isFirst = true;
 
@@ -248,15 +289,18 @@ public final class ReverseSearchService {
         return b.glossTokens() < a.glossTokens() ? b : a;
     }
 
-    private static GlossMatch scoreGloss(String gloss, String display, List<String> terms,
-                                         boolean hasDiacritics, String joinedQuery, boolean isFirst) {
-        List<String> tokens = TextNormalizer.splitTokens(gloss);
+    private GlossMatch scoreGloss(String gloss, String display, List<String> terms,
+                                  boolean hasDiacritics, String joinedQuery, boolean isFirst) {
+        List<String> syllables = TextNormalizer.splitTokens(gloss);
         List<String> cmp = hasDiacritics
-                ? tokens
-                : tokens.stream().map(TextNormalizer::removeDiacritics).toList();
+                ? syllables
+                : syllables.stream().map(TextNormalizer::removeDiacritics).toList();
+        // Phia dong nghia cung phai gop tu ghep, neu khong thi term "chăm_sóc" cua truy van
+        // khong bao gio khop duoc voi bat ky dong nghia nao.
+        List<String> cmpExpanded = compounds.expand(cmp);
 
         int matched = 0;
-        for (String t : terms) if (cmp.contains(t)) matched++;
+        for (String t : terms) if (cmpExpanded.contains(t)) matched++;
 
         String joinedGloss = String.join(" ", cmp);
         boolean exact = joinedGloss.equals(joinedQuery);

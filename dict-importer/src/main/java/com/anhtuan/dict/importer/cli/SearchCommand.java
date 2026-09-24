@@ -5,6 +5,7 @@ import com.anhtuan.dict.core.lexicon.LexicalPrior;
 import com.anhtuan.dict.core.lexicon.LexiconFormat;
 import com.anhtuan.dict.core.index.InvertedIndex;
 import com.anhtuan.dict.core.model.Segment;
+import com.anhtuan.dict.core.nlp.ViCompounds;
 import com.anhtuan.dict.core.pack.PackReader;
 import com.anhtuan.dict.core.service.DictionaryGlossEngine;
 import com.anhtuan.dict.core.service.LookupService;
@@ -69,8 +70,15 @@ final class SearchCommand {
                     }
                 }
                 case "vi" -> {
-                    List<ReverseSearchService.Hit> hits =
-                            new ReverseSearchService(pack, vi, viNo, tri).searchVietnamese(query, 15);
+                    ViCompounds compounds =
+                            ViCompounds.loadIfPresent(dataDir.resolve(ViCompounds.FILE_NAME));
+                    var search = new ReverseSearchService(pack, vi, viNo, tri, compounds,
+                            LexicalPrior.openIfPresent(dataDir.resolve(LexiconFormat.FILE_NAME)));
+                    List<ReverseSearchService.Hit> hits = search.searchVietnamese(query, 15);
+                    List<String> suggestions = search.suggestVietnamese(query, 3);
+                    if (!suggestions.isEmpty()) {
+                        out.println("  Y ban la: " + String.join(" / ", suggestions) + " ?");
+                    }
                     if (hits.isEmpty()) out.println("khong co ket qua");
                     for (int i = 0; i < hits.size(); i++) {
                         ReverseSearchService.Hit h = hits.get(i);

@@ -7,6 +7,7 @@ import com.anhtuan.dict.core.index.InvertedIndex;
 import com.anhtuan.dict.core.model.Entry;
 import com.anhtuan.dict.core.model.Segment;
 import com.anhtuan.dict.core.model.SegmentKind;
+import com.anhtuan.dict.core.nlp.ViCompounds;
 import com.anhtuan.dict.core.pack.PackReader;
 import com.anhtuan.dict.core.service.DictionaryGlossEngine;
 import com.anhtuan.dict.core.service.LookupService;
@@ -60,8 +61,13 @@ final class VerifyCommand {
             long heapAfter = usedHeap();
             LookupService lookup = new LookupService(reader);
             Set<String> starters = reader.multiWordStarters();
-            DictionaryGlossEngine gloss = new DictionaryGlossEngine(lookup, starters);
-            ReverseSearchService search = new ReverseSearchService(reader, vi, viNo, tri);
+            LexicalPrior prior =
+                    LexicalPrior.openIfPresent(dataDir.resolve(LexiconFormat.FILE_NAME));
+            DictionaryGlossEngine gloss = new DictionaryGlossEngine(lookup, starters, prior);
+            ViCompounds compounds =
+                    ViCompounds.loadIfPresent(dataDir.resolve(ViCompounds.FILE_NAME));
+            ReverseSearchService search =
+                    new ReverseSearchService(reader, vi, viNo, tri, compounds, prior);
 
             section("M2 - dict.pack");
             // Ngan sach da SUA theo so do that, xem PLAN.md muc 3. Muc tieu cu 5,2 MB duoc
@@ -101,6 +107,9 @@ final class VerifyCommand {
                     String.format(Locale.ROOT, "trung binh %.1f us", avgUs));
 
             section("M3 - index + Viet->Anh");
+            check("co danh sach tu ghep tieng Viet (vi-words.txt)", compounds.isAvailable(),
+                    compounds.isAvailable() ? String.format("%,d tu ghep", compounds.size())
+                            : "thieu - sinh lai du lieu bang lenh build");
             long viSize = Files.size(dataDir.resolve(IndexFormat.VI_INDEX));
             long triSize = Files.size(dataDir.resolve(IndexFormat.TRIGRAM_INDEX));
             check("vi.idx <= 2,4 MB", viSize <= 2.4 * 1024 * 1024, ImporterMain.mb(viSize));
@@ -119,6 +128,15 @@ final class VerifyCommand {
             long searchMs = (System.nanoTime() - t0) / 1_000_000;
             check("search < 30 ms", searchMs < 30, searchMs + " ms");
 
+            check("go sai tieng Viet \"cham sok\" -> goi y \"chăm sóc\"",
+                    search.suggestVietnamese("cham sok", 3).contains("chăm sóc"),
+                    search.suggestVietnamese("cham sok", 3).toString());
+            check("go dung thi KHONG goi y", search.suggestVietnamese("chăm sóc", 3).isEmpty(),
+                    "khong co goi y thua");
+            checkSearch(search, "kế hoạch", List.of("plan"));
+            checkSearch(search, "chính phủ", List.of("government"));
+            checkSearch(search, "nghiên cứu", List.of("research"));
+
             List<ReverseSearchService.Hit> fuzzy = search.fuzzyEnglish("aboout", 5);
             check("go sai \"aboout\" -> \"about\" o vi tri so 1",
                     !fuzzy.isEmpty() && fuzzy.getFirst().entry().headwordNorm().equals("about"),
@@ -133,8 +151,6 @@ final class VerifyCommand {
             checkOffsets(gloss, "He gave up his job.");
 
             section("Dich ca cau bang luat");
-            LexicalPrior prior =
-                    LexicalPrior.openIfPresent(dataDir.resolve(LexiconFormat.FILE_NAME));
             check("co bang xac suat dich tu (lex.bin)", prior.isAvailable(),
                     prior.isAvailable() ? String.format("%,d tu tieng Anh", prior.wordCount())
                             : "thieu - chay lenh lexicon de sinh");

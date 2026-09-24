@@ -150,7 +150,15 @@ public final class ImporterMain {
         }
         System.out.printf("  %,d ms%n", ms(t2));
 
-        long total = packStats.fileSize();
+        java.nio.file.Path wordList = outDir.resolve(
+                com.anhtuan.dict.core.nlp.ViCompounds.FILE_NAME);
+        long wordListSize = Files.exists(wordList) ? Files.size(wordList) : 0;
+        System.out.printf("  %-14s %,7d tu ghep tieng Viet / %s%n",
+                com.anhtuan.dict.core.nlp.ViCompounds.FILE_NAME,
+                com.anhtuan.dict.core.nlp.ViCompounds.loadIfPresent(wordList).size(),
+                mb(wordListSize));
+
+        long total = packStats.fileSize() + wordListSize;
         for (IndexWriter.Stats s : idx) total += s.fileSize();
         System.out.printf("TONG DU LIEU : %s  (ngan sach PLAN.md: <= 11 MB)%n", mb(total));
     }
