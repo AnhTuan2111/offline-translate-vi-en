@@ -66,6 +66,24 @@ public final class OnnxNmtEngine implements TranslationEngine, Closeable {
      */
     private static final int NO_REPEAT_NGRAM = 3;
 
+    /**
+     * So gia thuyet giu song song khi giai ma. 4 la gia tri chinh model nay duoc huan luyen de
+     * dung ({@code num_beams} trong generation_config.json). Dat 1 = quay ve greedy.
+     *
+     * <p>Vi sao can: greedy chon tu tot nhat o TUNG BUOC, nen mot lua chon dau cau te co the
+     * keo ca cau di sai ma khong cach nao quay lai. Do thuc te: "Identify and justify the most
+     * appropriate model" bi greedy dich thanh "Và biện minh cho mô hình..." - nuot han chu
+     * "Identify" ngay tu buoc dau.
+     */
+    private static final int BEAM_SIZE = 4;
+
+    /**
+     * He so phat do dai. Chia diem cho {@code len^alpha} truoc khi so sanh cac gia thuyet da
+     * xong: khong co no thi cau NGAN luon thang, vi moi tu them vao deu lam tong log xac suat
+     * am hon. 1.0 la gia tri mac dinh cua Marian.
+     */
+    private static final double LENGTH_PENALTY = 1.0;
+
     private final OrtEnvironment env;
     private final OrtSession encoder;
     private final OrtSession decoder;
@@ -154,8 +172,8 @@ public final class OnnxNmtEngine implements TranslationEngine, Closeable {
             encoderInput.put("attention_mask", mask);
 
             try (OrtSession.Result encoded = encoder.run(encoderInput)) {
-                OnnxTensor hidden = (OnnxTensor) encoded.get(0);
-                return decodeGreedy(hidden, mask);
+                float[][][] hidden = (float[][][]) encoded.get(0).getValue();
+                return decodeBeam(hidden, maskRow);
             }
         } catch (OrtException e) {
             throw new IllegalStateException("loi khi chay mo hinh: " + e.getMessage(), e);
@@ -193,45 +211,128 @@ public final class OnnxNmtEngine implements TranslationEngine, Closeable {
         return banned;
     }
 
+    /** Mot gia thuyet dich dang duoc giu. */
+    private record Beam(List<Integer> tokens, double score) {}
+
     /**
-     * Sinh tung tu mot, moi buoc lay tu co diem cao nhat.
+     * Giai ma bang beam search: giu {@value #BEAM_SIZE} gia thuyet song song thay vi mot.
      *
-     * <p>Bo qua {@code PAD_ID} khi chon: cau hinh cua model ghi ro {@code bad_words_ids}
-     * chua id nay, sinh ra no la hong ca cau.
+     * <p>Moi buoc, tat ca gia thuyet con song deu co CUNG do dai nen gom duoc thanh mot lo
+     * (batch) va chi chay decoder MOT lan - chay rieng tung gia thuyet thi cham gap bon.
+     *
+     * <p>Diem cua mot gia thuyet la tong log xac suat cua cac tu trong no. Phai dung
+     * log-softmax chu khong dung thang logit: logit cua hai gia thuyet khac nhau lech nhau mot
+     * hang so rieng, cong thang vao thi so sanh sai.
      */
-    private String decodeGreedy(OnnxTensor encoderHidden, OnnxTensor encoderMask)
-            throws OrtException {
-        List<Integer> generated = new ArrayList<>(64);
+    private String decodeBeam(float[][][] encoderHidden, long[] maskRow) throws OrtException {
+        List<Beam> alive = new ArrayList<>(BEAM_SIZE);
+        alive.add(new Beam(List.of(), 0.0));
+        List<Beam> finished = new ArrayList<>(BEAM_SIZE);
 
-        for (int step = 0; step < MAX_OUTPUT_TOKENS; step++) {
-            long[] decoderIds = new long[generated.size() + 1];
-            decoderIds[0] = MarianTokenizer.DECODER_START_ID;
-            for (int i = 0; i < generated.size(); i++) decoderIds[i + 1] = generated.get(i);
+        for (int step = 0; step < MAX_OUTPUT_TOKENS && !alive.isEmpty(); step++) {
+            int batch = alive.size();
+            int len = alive.get(0).tokens().size() + 1;
 
-            try (OnnxTensor decoderInput = OnnxTensor.createTensor(env, new long[][] {decoderIds})) {
+            long[][] decoderIds = new long[batch][len];
+            for (int b = 0; b < batch; b++) {
+                decoderIds[b][0] = MarianTokenizer.DECODER_START_ID;
+                List<Integer> tokens = alive.get(b).tokens();
+                for (int i = 0; i < tokens.size(); i++) decoderIds[b][i + 1] = tokens.get(i);
+            }
+
+            float[][][] logits;
+            try (OnnxTensor decoderInput = OnnxTensor.createTensor(env, decoderIds);
+                 OnnxTensor hiddenTensor = OnnxTensor.createTensor(env, tile(encoderHidden, batch));
+                 OnnxTensor maskTensor = OnnxTensor.createTensor(env, tile(maskRow, batch))) {
                 Map<String, OnnxTensor> input = new HashMap<>(4);
                 input.put("input_ids", decoderInput);
-                input.put("encoder_hidden_states", encoderHidden);
-                input.put("encoder_attention_mask", encoderMask);
-
+                input.put("encoder_hidden_states", hiddenTensor);
+                input.put("encoder_attention_mask", maskTensor);
                 try (OrtSession.Result result = decoder.run(input)) {
-                    float[][][] logits = (float[][][]) result.get(0).getValue();
-                    float[] last = logits[0][decoderIds.length - 1];
-
-                    java.util.Set<Integer> banned = bannedTokens(generated);
-                    int best = -1;
-                    float bestScore = Float.NEGATIVE_INFINITY;
-                    for (int v = 0; v < last.length; v++) {
-                        if (v == MarianTokenizer.PAD_ID) continue;
-                        if (banned.contains(v)) continue;
-                        if (last[v] > bestScore) { bestScore = last[v]; best = v; }
-                    }
-                    if (best < 0 || best == MarianTokenizer.EOS_ID) break;
-                    generated.add(best);
+                    logits = (float[][][]) result.get(0).getValue();
                 }
             }
+
+            List<Beam> candidates = new ArrayList<>(batch * (BEAM_SIZE + 1));
+            for (int b = 0; b < batch; b++) {
+                Beam beam = alive.get(b);
+                float[] last = logits[b][len - 1];
+                double logSumExp = logSumExp(last);
+                java.util.Set<Integer> banned = bannedTokens(beam.tokens());
+
+                for (int token : topK(last, banned, BEAM_SIZE + 1)) {
+                    double score = beam.score() + (last[token] - logSumExp);
+                    if (token == MarianTokenizer.EOS_ID) {
+                        finished.add(new Beam(beam.tokens(), score));
+                    } else {
+                        List<Integer> tokens = new ArrayList<>(beam.tokens());
+                        tokens.add(token);
+                        candidates.add(new Beam(tokens, score));
+                    }
+                }
+            }
+
+            candidates.sort((x, y) -> Double.compare(y.score(), x.score()));
+            alive = new ArrayList<>(candidates.subList(0, Math.min(BEAM_SIZE, candidates.size())));
+
+            // Dung som: gia thuyet song tot nhat da khong the duoi kip gia thuyet da xong.
+            if (finished.size() >= BEAM_SIZE && !alive.isEmpty()) {
+                double bestAlive = normalised(alive.get(0));
+                double bestFinished = finished.stream()
+                        .mapToDouble(OnnxNmtEngine::normalised).max().orElse(Double.NEGATIVE_INFINITY);
+                if (bestAlive < bestFinished) break;
+            }
         }
-        return tokenizer.decode(generated);
+
+        // Khong gia thuyet nao ket thuc dung han (cau qua dai) thi lay gia thuyet song tot nhat.
+        List<Beam> remaining = alive;
+        Beam best = finished.stream()
+                .max((x, y) -> Double.compare(normalised(x), normalised(y)))
+                .orElseGet(() -> remaining.isEmpty() ? new Beam(List.of(), 0) : remaining.get(0));
+        return tokenizer.decode(best.tokens());
+    }
+
+    /** Diem da chia cho do dai - dung khi so sanh cac gia thuyet dai ngan khac nhau. */
+    private static double normalised(Beam beam) {
+        int length = Math.max(1, beam.tokens().size());
+        return beam.score() / Math.pow(length, LENGTH_PENALTY);
+    }
+
+    private static double logSumExp(float[] values) {
+        float max = Float.NEGATIVE_INFINITY;
+        for (float v : values) {
+            if (v > max) max = v;
+        }
+        double sum = 0;
+        for (float v : values) sum += Math.exp(v - max);
+        return max + Math.log(sum);
+    }
+
+    /** {@code k} tu co diem cao nhat, bo qua cac tu bi cam. */
+    private static List<Integer> topK(float[] logits, java.util.Set<Integer> banned, int k) {
+        java.util.PriorityQueue<Integer> heap =
+                new java.util.PriorityQueue<>((x, y) -> Float.compare(logits[x], logits[y]));
+        for (int v = 0; v < logits.length; v++) {
+            if (v == MarianTokenizer.PAD_ID || banned.contains(v)) continue;
+            heap.add(v);
+            if (heap.size() > k) heap.poll();
+        }
+        List<Integer> out = new ArrayList<>(heap);
+        out.sort((x, y) -> Float.compare(logits[y], logits[x]));
+        return out;
+    }
+
+    /** Nhan ban vector ngu nghia cua cau nguon ra {@code batch} ban de chay mot lo. */
+    private static float[][][] tile(float[][][] source, int batch) {
+        float[][][] out = new float[batch][][];
+        for (int b = 0; b < batch; b++) out[b] = source[0];
+        return out;
+    }
+
+    private static long[][] tile(long[] row, int batch) {
+        long[][] out = new long[batch][];
+        for (int b = 0; b < batch; b++) out[b] = row;
+        return out;
     }
 
     @Override
