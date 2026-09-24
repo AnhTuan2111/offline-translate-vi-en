@@ -16,6 +16,29 @@ Cả hai đều chạy **hoàn toàn offline** — không có một dòng mã n�
 
 ## [Chưa phát hành]
 
+### Thêm
+- Từ điển thuật ngữ CNTT tự soạn: **463 mục**, xếp theo nhóm (quy trình phát triển, UML,
+  mẫu thiết kế, giải thuật, CSDL, web/API, DevOps, bảo mật, kiểm thử, AI, động từ hay gặp
+  trong đề bài, cụm kỹ thuật hay dịch sai). Tách từ điển thuật ngữ y tế ra file riêng
+  (**39 mục**) để bật/tắt độc lập.
+- Năm luật đoán từ loại mới, đo trên tài liệu kỹ thuật thật:
+  câu mệnh lệnh đầu câu (`Map the four stages…` → "Đối chiếu", không phải "Bản đồ");
+  liệt kê động từ sau dấu phẩy và `and` (`to maintain, test, and scale` → "kiểm thử",
+  "mở rộng quy mô", không phải "vỏ", "sự chia độ");
+  cụm nhiều từ mang từ loại danh từ cũng tham gia sắp lại danh ngữ
+  (`a suitable design pattern` → "mẫu thiết kế phù hợp");
+  phân từ hiện tại làm giới từ (`including preconditions` → "gồm cả điều kiện tiên quyết");
+  tính từ/trạng từ không tính là từ dẫn dắt khi tìm chủ ngữ (`into smaller modules makes it…`).
+- Cấp so sánh: `smaller` → "nhỏ hơn", `easier` → "dễ hơn". Trước đây `Lemmatizer` cắt đuôi
+  `-er`/`-est` để tra được từ điển nên mất hẳn ý so sánh.
+- Số đếm vào bảng hư từ (`four`…`billion`). Thiếu chúng thì `four` bị tra nguồn 109K và ra
+  nghĩa cổ "chứng khoán lãi 4 qịu (sử học) bốn xu rượu", lại còn đứng sai chỗ.
+
+### Sửa
+- `build` không còn ghi đè bảng ưu tiên nguồn về `priority = id`: bảng thuật ngữ truyền thêm
+  ở dòng lệnh luôn đứng **trên** từ điển nền. Trước đây phải sửa tay `sources.tsv` sau mỗi
+  lần dựng lại, quên là toàn bộ bảng thuật ngữ thành vô nghĩa.
+
 ## [0.1.0] — 2026-09-25
 
 Bản đầu tiên dùng được.
