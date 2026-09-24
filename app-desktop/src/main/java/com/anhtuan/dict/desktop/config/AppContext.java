@@ -4,6 +4,7 @@ import com.anhtuan.dict.core.index.IndexFormat;
 import com.anhtuan.dict.core.index.InvertedIndex;
 import com.anhtuan.dict.core.lexicon.LexicalPrior;
 import com.anhtuan.dict.core.lexicon.LexiconFormat;
+import com.anhtuan.dict.core.nlp.ViCompounds;
 import com.anhtuan.dict.core.pack.PackReader;
 import com.anhtuan.dict.core.service.DictionaryGlossEngine;
 import com.anhtuan.dict.core.service.LookupService;
@@ -44,6 +45,7 @@ public final class AppContext implements AutoCloseable {
     private final InvertedIndex viNoDiacIndex;
     private final InvertedIndex trigramIndex;
     private final LexicalPrior lexicalPrior;
+    private final ViCompounds compounds;
 
     private final LookupService lookupService;
     private final ReverseSearchService reverseSearchService;
@@ -62,13 +64,16 @@ public final class AppContext implements AutoCloseable {
         this.trigramIndex = InvertedIndex.open(dataDir.resolve(IndexFormat.TRIGRAM_INDEX));
 
         this.lookupService = new LookupService(pack);
-        this.reverseSearchService =
-                new ReverseSearchService(pack, viIndex, viNoDiacIndex, trigramIndex);
-        // Quet vung KEYS mot lan de lay 5.927 tu mo dau cum - re hon giu mot file rieng.
-        this.phraseStarters = pack.multiWordStarters();
         // Thieu lex.bin thi app van chay, chi chon nghia kem hon - khong bat nguoi dung
         // phai sinh lai du lieu.
         this.lexicalPrior = LexicalPrior.openIfPresent(dataDir.resolve(LexiconFormat.FILE_NAME));
+        // Danh sach tu ghep phai la DUNG cai sinh ra cung luc voi index.
+        this.compounds = ViCompounds.loadIfPresent(dataDir.resolve(ViCompounds.FILE_NAME));
+        this.reverseSearchService =
+                new ReverseSearchService(pack, viIndex, viNoDiacIndex, trigramIndex,
+                        compounds, lexicalPrior);
+        // Quet vung KEYS mot lan de lay 5.927 tu mo dau cum - re hon giu mot file rieng.
+        this.phraseStarters = pack.multiWordStarters();
         this.glossEngine = new DictionaryGlossEngine(lookupService, phraseStarters, lexicalPrior);
         this.sentenceEngine =
                 new RuleBasedTranslationEngine(glossEngine, lookupService, lexicalPrior);
@@ -109,6 +114,10 @@ public final class AppContext implements AutoCloseable {
     /** Thoi gian nap du lieu, hien o thanh trang thai lam bang chung do duoc. */
     public long startupMillis() {
         return startupMillis;
+    }
+
+    public ViCompounds compounds() {
+        return compounds;
     }
 
     public LexicalPrior lexicalPrior() {

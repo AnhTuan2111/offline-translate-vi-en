@@ -238,10 +238,27 @@ public final class MainView {
 
     private Node searchVietnamese(String query) {
         List<ReverseSearchService.Hit> hits = ctx.search().searchVietnamese(query, 25);
-        if (hits.isEmpty()) {
-            return ResultRenderer.message("Không tìm thấy từ tiếng Anh nào cho \"" + query + "\".");
+        // Go sai chinh ta tieng Viet thi tim theo am tiet van "chay" nhung ra rac:
+        // "cham sok" tung tra ve slow, sculp, shock. Phai noi cho nguoi dung biet.
+        List<String> suggestions = ctx.search().suggestVietnamese(query, 3);
+
+        VBox box = new VBox(6);
+        if (!suggestions.isEmpty()) {
+            box.getChildren().add(ResultRenderer.suggestion(suggestions, this::searchAgain));
         }
-        return ResultRenderer.renderHits(hits, this::openWord);
+        if (hits.isEmpty()) {
+            box.getChildren().add(ResultRenderer.message(
+                    "Không tìm thấy từ tiếng Anh nào cho \"" + query + "\"."));
+        } else {
+            box.getChildren().add(ResultRenderer.renderHits(hits, this::openWord));
+        }
+        return box;
+    }
+
+    /** Bam vao goi y chinh ta -> tra lai bang tu duoc goi y. */
+    private void searchAgain(String query) {
+        input.setText(query);
+        run();
     }
 
     private void switchMode(Mode target) {

@@ -253,6 +253,20 @@ final class ResultRenderer {
         return box;
     }
 
+    /** Dong "Y ban la ...?" - bam vao la tra luon tu duoc goi y. */
+    static Node suggestion(List<String> words, Consumer<String> onPick) {
+        javafx.scene.layout.HBox row = new javafx.scene.layout.HBox(8);
+        row.getStyleClass().add("suggestion-row");
+        row.getChildren().add(styled("Ý bạn là:", "message"));
+        for (String w : words) {
+            Label link = new Label(w);
+            link.getStyleClass().add("suggestion-link");
+            link.setOnMouseClicked(e -> onPick.accept(w));
+            row.getChildren().add(link);
+        }
+        return row;
+    }
+
     static Node message(String text) {
         Label l = styled(text, "message");
         return l;
