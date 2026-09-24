@@ -71,6 +71,8 @@ public final class ReverseSearchService {
     private final InvertedIndex trigramIndex;
     private final ViCompounds compounds;
     private final LexicalPrior prior;
+    /** Dat tu ben ngoai de ket qua tim cung ton trong viec bat/tat nguon. */
+    private volatile com.anhtuan.dict.core.source.SourceCatalog catalog;
 
     public ReverseSearchService(PackReader pack, InvertedIndex viIndex,
                                 InvertedIndex viNoDiacIndex, InvertedIndex trigramIndex) {
@@ -96,6 +98,14 @@ public final class ReverseSearchService {
         this.trigramIndex = trigramIndex;
         this.compounds = compounds;
         this.prior = prior;
+    }
+
+    public void setCatalog(com.anhtuan.dict.core.source.SourceCatalog catalog) {
+        this.catalog = catalog;
+    }
+
+    private com.anhtuan.dict.core.source.SourceCatalog lookupCatalog() {
+        return catalog;
     }
 
     /**
@@ -162,6 +172,11 @@ public final class ReverseSearchService {
         for (Map.Entry<Integer, Double> e : pool) {
             int docId = e.getKey();
             Entry entry = pack.entryAt(docId);
+            // Nguon dang tat thi khong duoc xuat hien trong ket qua tim (PLAN.md F5).
+            var catalog = lookupCatalog();
+            if (catalog != null && catalog.hasEnabled() && !catalog.isEnabled(entry.sourceId())) {
+                continue;
+            }
             GlossMatch gm = bestGloss(entry, rerankTerms, hasDiacritics, joinedQuery);
 
             double queryCoverage = (double) hitTerms.getOrDefault(docId, 1) / terms.size();

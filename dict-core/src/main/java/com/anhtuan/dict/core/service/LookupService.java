@@ -7,6 +7,7 @@ import com.anhtuan.dict.core.model.Sense;
 import com.anhtuan.dict.core.nlp.Lemmatizer;
 import com.anhtuan.dict.core.nlp.TextNormalizer;
 import com.anhtuan.dict.core.pack.PackReader;
+import com.anhtuan.dict.core.source.SourceCatalog;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -32,9 +33,46 @@ public final class LookupService {
     private static final int MAX_CANDIDATES = 12;
 
     private final PackReader pack;
+    /** Doi duoc luc dang chay khi nguoi dung bat/tat nguon - vi vay phai volatile. */
+    private volatile SourceCatalog catalog;
 
     public LookupService(PackReader pack) {
+        this(pack, null);
+    }
+
+    public LookupService(PackReader pack, SourceCatalog catalog) {
         this.pack = pack;
+        this.catalog = catalog;
+    }
+
+    /** Nguoi dung vua bat/tat mot nguon tu dien (PLAN.md F5). */
+    public void setCatalog(SourceCatalog catalog) {
+        this.catalog = catalog;
+    }
+
+    public SourceCatalog catalog() {
+        return catalog;
+    }
+
+    /**
+     * Bo cac muc tu thuoc nguon dang TAT, va xep nguon uu tien hon len truoc.
+     *
+     * <p>Loc o day chu khong loc luc build: moi Entry mang san sourceId nen bat/tat chi la
+     * mot phep loc, khong phai sinh lai du lieu. Tat het moi nguon thi coi nhu khong loc -
+     * de man hinh trong ma khong noi gi la cach ung xu te nhat co the.
+     */
+    private List<Entry> applyCatalog(List<Entry> entries) {
+        SourceCatalog current = catalog;
+        if (current == null || entries.size() <= 1 && current.hasEnabled()
+                && entries.stream().allMatch(e -> current.isEnabled(e.sourceId()))) {
+            return entries;
+        }
+        if (!current.hasEnabled()) return entries;
+        List<Entry> kept = new ArrayList<>(entries.size());
+        for (Entry e : entries) if (current.isEnabled(e.sourceId())) kept.add(e);
+        if (kept.isEmpty()) return List.of();
+        kept.sort(Comparator.comparingInt(e -> current.priorityOf(e.sourceId())));
+        return kept;
     }
 
     /**
@@ -53,14 +91,14 @@ public final class LookupService {
         String norm = TextNormalizer.normalizeHeadword(word);
         if (norm.isEmpty()) return Optional.empty();
 
-        List<Entry> direct = pack.lookupAll(norm);
+        List<Entry> direct = applyCatalog(pack.lookupAll(norm));
         if (hasGloss(direct)) return Optional.of(new Resolution(norm, direct, false));
 
         // Entry chi co dong '+' tham chieu cheo van tinh la TRUOT. Nguon co rat nhieu muc
         // kieu "@went  + thoi qua khu cua go": tim thay ma khong co nghia nao de hien thi.
         // Phai lemma hoa tiep de ra "@go", neu khong thi UI in ra o trong.
         for (String cand : Lemmatizer.candidates(norm)) {
-            List<Entry> hit = pack.lookupAll(cand);
+            List<Entry> hit = applyCatalog(pack.lookupAll(cand));
             if (hasGloss(hit)) return Optional.of(new Resolution(cand, hit, true));
         }
         // Khong con duong nao khac: tra ve entry rong con hon khong tra gi (con crossRefs de hien).
@@ -85,7 +123,7 @@ public final class LookupService {
 
     /** Toan bo entry dong am cua mot tu, khong lemma hoa. Dung cho o tra tu cua UI. */
     public List<Entry> lookupAll(String word) {
-        return pack.lookupAll(word);
+        return applyCatalog(pack.lookupAll(word));
     }
 
     public boolean contains(String normalizedKey) {
@@ -115,7 +153,11 @@ public final class LookupService {
                 // Do "day dan" cua nhom nghia: tu dien viet ky nghia nao thi do la nghia
                 // hay dung. @school co hai nhom danh tu - "đàn cá" (1 nghia, 0 vi du) va
                 // "trường học" (6 nghia, nhieu vi du). Xep theo thu tu file thi ra "đàn cá".
-                double weight = s.glosses().size() + s.examples().size();
+                // Nguon uu tien hon thang tuyet doi; trong cung nguon moi so do day dan.
+                SourceCatalog current = catalog;
+                int sourcePenalty = current == null ? 0
+                        : Math.min(current.priorityOf(e.sourceId()), 100) * 1000;
+                double weight = s.glosses().size() + s.examples().size() - sourcePenalty;
                 String g = s.primaryGloss();
                 if (g != null) primary.add(new Candidate(e.headword(), g, s.pos(), weight));
                 List<String> glosses = s.glosses();
