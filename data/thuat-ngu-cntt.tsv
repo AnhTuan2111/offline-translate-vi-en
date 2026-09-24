@@ -1,19 +1,22 @@
-# Thuật ngữ công nghệ thông tin và kỹ thuật phần mềm.
-# Nguồn thứ hai cho từ điển — nạp bằng:
-#   ImporterMain build anhviet109K.txt data/build data/thuat-ngu-cntt.tsv
+# TỪ ĐIỂN THUẬT NGỮ CÔNG NGHỆ THÔNG TIN
 #
-# Vì sao cần: từ điển 109K là từ điển phổ thông, nên với văn bản kỹ thuật nó chọn nghĩa
-# đời thường và sai hẳn — "stable" ra "chuồng ngựa", "platform" ra "sân ga",
-# "concrete" ra "bê tông", "monitor" ra "máy phát hiện phóng xạ". Đặt nguồn này lên
-# TRÊN nguồn 109K trong cửa sổ "Nguồn từ điển" là những từ dưới đây được ưu tiên.
+# Nạp bằng:  ImporterMain build anhviet109K.txt data/build data/thuat-ngu-cntt.tsv
+# Rồi mở "Nguồn từ điển" trong app, kéo nguồn này LÊN TRÊN từ điển 109K.
 #
-# Định dạng: từ tiếng Anh <TAB> nghĩa tiếng Việt <TAB> từ loại
+# Vì sao cần: 109K là từ điển phổ thông nên với văn bản kỹ thuật nó chọn nghĩa đời thường
+# và sai hẳn — "stable" ra "chuồng ngựa", "platform" ra "sân ga", "concrete" ra "bê tông",
+# "monitor" ra "máy phát hiện phóng xạ".
+#
+# Định dạng:  từ tiếng Anh <TAB> nghĩa tiếng Việt <TAB> từ loại
+# Cụm nhiều từ dùng được bình thường — bộ khớp cụm của app tự nhận ra.
 
-# --- từ đa nghĩa hay dịch sai nhất trong văn bản kỹ thuật ---
+# ============================================================ TỪ ĐA NGHĨA HAY DỊCH SAI NHẤT
 stable	ổn định, không thay đổi	tính từ
 platform	nền tảng, hệ thống	danh từ
-escalate	chuyển lên cấp cao hơn, leo thang	động từ
+escalate	chuyển lên cấp cao hơn	động từ
+escalation	việc chuyển lên cấp cao hơn	danh từ
 monitor	theo dõi, giám sát	động từ
+monitoring	giám sát hệ thống	danh từ
 concrete	cụ thể, rõ ràng	tính từ
 patient	bệnh nhân, người bệnh	danh từ
 book	đặt chỗ, đặt lịch	động từ
@@ -21,7 +24,7 @@ booking	việc đặt chỗ, lượt đặt lịch	danh từ
 server	máy chủ	danh từ
 servers	máy chủ	danh từ
 application	ứng dụng	danh từ
-session	phiên làm việc, buổi	danh từ
+session	phiên làm việc	danh từ
 slot	khung giờ, chỗ trống	danh từ
 record	bản ghi, hồ sơ	danh từ
 records	bản ghi, hồ sơ	danh từ
@@ -29,87 +32,474 @@ role	vai trò, quyền hạn	danh từ
 roles	vai trò, quyền hạn	danh từ
 access	truy cập	động từ
 storage	lưu trữ	danh từ
-library	thư viện	danh từ
+library	thư viện mã nguồn	danh từ
 resolve	xử lý xong, giải quyết	động từ
 critical	nghiêm trọng, nguy cấp	tính từ
 alert	cảnh báo	danh từ
-trigger	kích hoạt, sự kiện kích hoạt	danh từ
+trigger	kích hoạt	động từ
 scale	mở rộng quy mô	động từ
 support	hỗ trợ	động từ
+handle	xử lý	động từ
+issue	vấn đề, lỗi cần xử lý	danh từ
+release	bản phát hành	danh từ
+build	bản dựng	danh từ
+run	chạy chương trình	động từ
+call	lời gọi hàm	danh từ
+key	khoá	danh từ
+value	giá trị	danh từ
+field	trường dữ liệu	danh từ
+object	đối tượng	danh từ
+instance	thể hiện của lớp	danh từ
+method	phương thức	danh từ
+property	thuộc tính	danh từ
+argument	đối số	danh từ
+parameter	tham số	danh từ
+statement	câu lệnh	danh từ
+expression	biểu thức	danh từ
+scope	phạm vi truy cập	danh từ
+state	trạng thái	danh từ
+flow	luồng xử lý	danh từ
+branch	nhánh mã nguồn	danh từ
+tree	cây dữ liệu	danh từ
+root	gốc	danh từ
+node	nút	danh từ
+stack	ngăn xếp	danh từ
+queue	hàng đợi	danh từ
+heap	vùng nhớ động	danh từ
+pool	bể tài nguyên dùng lại	danh từ
+frame	khung	danh từ
+driver	trình điều khiển	danh từ
+port	cổng	danh từ
+socket	cổng kết nối mạng	danh từ
+packet	gói tin	danh từ
+buffer	bộ đệm	danh từ
+cache	bộ nhớ đệm	danh từ
+thread	luồng	danh từ
+process	tiến trình	danh từ
+kernel	nhân hệ điều hành	danh từ
+shell	trình dòng lệnh	danh từ
+script	tập lệnh	danh từ
+patch	bản vá	danh từ
+commit	lần ghi thay đổi	danh từ
+merge	gộp nhánh	động từ
+deploy	triển khai	động từ
+bug	lỗi phần mềm	danh từ
+crash	sập chương trình	động từ
+hang	treo, đứng máy	động từ
+freeze	đóng băng, đứng hình	động từ
+leak	rò rỉ	danh từ
+overflow	tràn	danh từ
+timeout	hết thời gian chờ	danh từ
+retry	thử lại	động từ
+fallback	phương án dự phòng	danh từ
 
-# --- kỹ thuật phần mềm ---
-stakeholder	bên liên quan	danh từ
-stakeholders	các bên liên quan	danh từ
+# ============================================================ QUY TRÌNH PHÁT TRIỂN PHẦN MỀM
 requirement	yêu cầu	danh từ
 requirements	các yêu cầu	danh từ
+specification	đặc tả	danh từ
+stakeholder	bên liên quan	danh từ
+stakeholders	các bên liên quan	danh từ
 inception	giai đoạn khởi đầu	danh từ
 iterative	lặp, theo vòng lặp	tính từ
 iteration	vòng lặp, lần lặp	danh từ
+incremental	tăng dần từng phần	tính từ
+waterfall	mô hình thác nước	danh từ
+prototype	bản mẫu thử	danh từ
+feasibility	tính khả thi	danh từ
 mitigation	giảm thiểu rủi ro	danh từ
 deliverable	sản phẩm bàn giao	danh từ
 delivery	việc bàn giao	danh từ
 deployment	triển khai	danh từ
-deploy	triển khai	động từ
+maintenance	bảo trì	danh từ
 maintainability	khả năng bảo trì	danh từ
 scalability	khả năng mở rộng	danh từ
 availability	khả năng sẵn sàng	danh từ
 usability	khả năng dễ dùng	danh từ
 reliability	độ tin cậy	danh từ
-throughput	thông lượng	danh từ
-latency	độ trễ	danh từ
+portability	khả năng chuyển nền tảng	danh từ
+interoperability	khả năng liên thông	danh từ
+traceability	khả năng truy vết yêu cầu	danh từ
 constraint	ràng buộc	danh từ
 trade-off	sự đánh đổi	danh từ
-architecture	kiến trúc hệ thống	danh từ
-framework	bộ khung, nền tảng lập trình	danh từ
-repository	kho lưu trữ dữ liệu	danh từ
-controller	bộ điều khiển	danh từ
-entity	thực thể	danh từ
+milestone	mốc công việc	danh từ
+backlog	danh sách việc tồn	danh từ
+sprint	chặng phát triển ngắn	danh từ
+standup	buổi họp nhanh hằng ngày	danh từ
+retrospective	buổi rút kinh nghiệm	danh từ
+estimation	việc ước lượng công sức	danh từ
+velocity	tốc độ hoàn thành công việc	danh từ
+scope creep	sự phình phạm vi dự án	danh từ
+technical debt	nợ kỹ thuật	danh từ
+refactor	tái cấu trúc	động từ
+refactoring	tái cấu trúc	danh từ
+legacy	mã cũ còn phải duy trì	tính từ
+boilerplate	mã khuôn mẫu lặp lại	danh từ
+documentation	tài liệu kỹ thuật	danh từ
+handover	bàn giao công việc	danh từ
+onboarding	quá trình làm quen ban đầu	danh từ
+compliance	sự tuân thủ	danh từ
+governance	cơ chế quản trị	danh từ
+audit	kiểm toán, rà soát	danh từ
+
+# ============================================================ PHÂN TÍCH, THIẾT KẾ, UML
+use case	ca sử dụng	danh từ
+actor	tác nhân	danh từ
+precondition	điều kiện tiên quyết	danh từ
+postcondition	điều kiện sau khi thực hiện	danh từ
+trigger event	sự kiện kích hoạt	danh từ
+main flow	luồng xử lý chính	danh từ
+alternative flow	luồng xử lý thay thế	danh từ
+exception flow	luồng xử lý ngoại lệ	danh từ
+class diagram	sơ đồ lớp	danh từ
+sequence diagram	sơ đồ tuần tự	danh từ
+activity diagram	sơ đồ hoạt động	danh từ
+state diagram	sơ đồ trạng thái	danh từ
+context diagram	sơ đồ ngữ cảnh	danh từ
 inheritance	kế thừa	danh từ
+generalisation	tổng quát hoá	danh từ
+generalization	tổng quát hoá	danh từ
 association	liên kết	danh từ
 aggregation	quan hệ gộp	danh từ
 composition	quan hệ cấu thành	danh từ
 multiplicity	bội số quan hệ	danh từ
-actor	tác nhân	danh từ
-use case	ca sử dụng	danh từ
-test case	ca kiểm thử	danh từ
-testing	kiểm thử	danh từ
-debugging	gỡ lỗi	danh từ
-refactor	tái cấu trúc mã nguồn	động từ
-backlog	danh sách việc tồn	danh từ
-sprint	chặng phát triển ngắn	danh từ
-milestone	mốc công việc	danh từ
+cardinality	số lượng quan hệ	danh từ
+attribute	thuộc tính	danh từ
+entity	thực thể	danh từ
+boundary	ranh giới hệ thống	danh từ
+architecture	kiến trúc hệ thống	danh từ
+component	thành phần	danh từ
+module	mô-đun	danh từ
+layer	tầng kiến trúc	danh từ
+tier	lớp triển khai	danh từ
+coupling	độ phụ thuộc giữa các thành phần	danh từ
+cohesion	độ gắn kết trong một thành phần	danh từ
+abstraction	trừu tượng hoá	danh từ
+encapsulation	đóng gói, che giấu dữ liệu	danh từ
+polymorphism	đa hình	danh từ
+interface	giao diện lập trình	danh từ
+implementation	phần cài đặt	danh từ
+override	ghi đè phương thức	động từ
+overload	nạp chồng phương thức	động từ
+immutable	bất biến, không sửa được	tính từ
+stateless	không giữ trạng thái	tính từ
+stateful	có giữ trạng thái	tính từ
+
+# ============================================================ MẪU THIẾT KẾ
+design pattern	mẫu thiết kế	danh từ
+singleton	mẫu đơn thể	danh từ
+factory	mẫu nhà máy tạo đối tượng	danh từ
+observer	mẫu quan sát viên	danh từ
+adapter	mẫu bộ chuyển đổi	danh từ
+facade	mẫu mặt tiền	danh từ
+decorator	mẫu trang trí	danh từ
+strategy	mẫu chiến lược	danh từ
+repository	kho lưu trữ dữ liệu	danh từ
+controller	bộ điều khiển	danh từ
+service	tầng nghiệp vụ	danh từ
+middleware	phần mềm trung gian	danh từ
+dependency	phụ thuộc	danh từ
+dependency injection	tiêm phụ thuộc	danh từ
+inversion of control	đảo ngược quyền điều khiển	danh từ
+
+# ============================================================ DỮ LIỆU VÀ GIẢI THUẬT
+algorithm	giải thuật	danh từ
+complexity	độ phức tạp	danh từ
+recursion	đệ quy	danh từ
+iteration	phép lặp	danh từ
+sorting	sắp xếp	danh từ
+searching	tìm kiếm	danh từ
+binary search	tìm kiếm nhị phân	danh từ
+hash	băm, mã băm	danh từ
+hash table	bảng băm	danh từ
+linked list	danh sách liên kết	danh từ
+array	mảng	danh từ
+matrix	ma trận	danh từ
+graph	đồ thị	danh từ
+traversal	phép duyệt	danh từ
+serialization	tuần tự hoá	danh từ
+parsing	phân tích cú pháp	danh từ
+encoding	mã hoá ký tự	danh từ
+compression	nén dữ liệu	danh từ
+
+# ============================================================ CƠ SỞ DỮ LIỆU
+database	cơ sở dữ liệu	danh từ
+schema	lược đồ dữ liệu	danh từ
+table	bảng dữ liệu	danh từ
+row	dòng dữ liệu	danh từ
+column	cột dữ liệu	danh từ
+query	truy vấn	danh từ
+index	chỉ mục	danh từ
+primary key	khoá chính	danh từ
+foreign key	khoá ngoại	danh từ
+constraint	ràng buộc dữ liệu	danh từ
+transaction	giao dịch	danh từ
 rollback	quay lại bản trước	động từ
-precondition	điều kiện tiên quyết	danh từ
-threshold	ngưỡng	danh từ
-escalation	việc chuyển lên cấp cao hơn	danh từ
-compliance	sự tuân thủ	danh từ
-onboarding	quá trình làm quen ban đầu	danh từ
-analytics	dữ liệu phân tích	danh từ
+commit	xác nhận giao dịch	động từ
+normalization	chuẩn hoá dữ liệu	danh từ
+denormalization	phi chuẩn hoá dữ liệu	danh từ
+migration	chuyển đổi cấu trúc dữ liệu	danh từ
+backup	sao lưu	danh từ
+restore	khôi phục dữ liệu	động từ
+replication	nhân bản dữ liệu	danh từ
+sharding	phân mảnh dữ liệu	danh từ
+deadlock	khoá chết, bế tắc	danh từ
+locking	khoá tài nguyên	danh từ
+integrity	tính toàn vẹn dữ liệu	danh từ
+persistence	lưu bền dữ liệu	danh từ
+
+# ============================================================ WEB, MẠNG, API
+protocol	giao thức	danh từ
+request	yêu cầu gửi lên	danh từ
+response	phản hồi trả về	danh từ
+endpoint	điểm kết nối	danh từ
+payload	dữ liệu gửi kèm	danh từ
+header	phần đầu thông điệp	danh từ
+gateway	cổng kết nối	danh từ
+proxy	máy chủ trung gian	danh từ
+load balancer	bộ cân bằng tải	danh từ
+bandwidth	băng thông	danh từ
+latency	độ trễ	danh từ
+throughput	thông lượng	danh từ
+firewall	tường lửa	danh từ
+routing	định tuyến	danh từ
+rendering	kết xuất giao diện	danh từ
+responsive	tự co giãn theo màn hình	tính từ
+frontend	phần giao diện người dùng	danh từ
+backend	phần xử lý phía máy chủ	danh từ
+framework	bộ khung lập trình	danh từ
+webhook	móc gọi ngược qua web	danh từ
+polling	hỏi vòng định kỳ	danh từ
+streaming	truyền liên tục	danh từ
+idempotent	gọi nhiều lần vẫn một kết quả	tính từ
+
+# ============================================================ DEVOPS, HẠ TẦNG, VẬN HÀNH
+infrastructure	hạ tầng	danh từ
+provisioning	cấp phát hạ tầng	danh từ
+container	vùng chứa	danh từ
+orchestration	điều phối vùng chứa	danh từ
+cluster	cụm máy chủ	danh từ
+node	máy trong cụm	danh từ
+pipeline	chuỗi công việc tự động	danh từ
+staging	môi trường thử trước khi phát hành	danh từ
+production	môi trường chạy thật	danh từ
+rollout	triển khai dần	danh từ
+failover	chuyển sang dự phòng khi sự cố	danh từ
+redundancy	dự phòng	danh từ
+downtime	thời gian ngừng hoạt động	danh từ
+uptime	thời gian hoạt động liên tục	danh từ
+logging	ghi nhật ký	danh từ
+tracing	lần vết yêu cầu	danh từ
+metrics	số liệu đo hệ thống	danh từ
 dashboard	bảng điều khiển	danh từ
+analytics	dữ liệu phân tích	danh từ
+bottleneck	nút thắt cổ chai	danh từ
+benchmark	phép đo hiệu năng chuẩn	danh từ
+profiling	đo hiệu năng chi tiết	danh từ
+caching	lưu đệm	danh từ
+garbage collection	thu gom rác bộ nhớ	danh từ
+concurrent	đồng thời	tính từ
+concurrency	tính đồng thời	danh từ
+parallelism	tính song song	danh từ
+race condition	lỗi tranh chấp do thứ tự thực thi	danh từ
+peak	cao điểm	danh từ
+workload	khối lượng công việc hệ thống	danh từ
+capacity	sức chứa, năng lực xử lý	danh từ
+provision	cấp phát	động từ
+
+# ============================================================ BẢO MẬT
+security	bảo mật	danh từ
 encryption	mã hoá	danh từ
 encrypted	đã mã hoá	tính từ
+decryption	giải mã	danh từ
 authentication	xác thực danh tính	danh từ
 authorization	phân quyền	danh từ
 credential	thông tin đăng nhập	danh từ
-gateway	cổng kết nối	danh từ
-endpoint	điểm kết nối	danh từ
-payload	dữ liệu gửi kèm	danh từ
-concurrent	đồng thời	tính từ
-concurrency	tính đồng thời	danh từ
-peak	cao điểm	danh từ
-downtime	thời gian ngừng hoạt động	danh từ
-uptime	thời gian hoạt động liên tục	danh từ
+credentials	thông tin đăng nhập	danh từ
+token	mã thông báo xác thực	danh từ
+certificate	chứng thư số	danh từ
+signature	chữ ký số	danh từ
+vulnerability	lỗ hổng bảo mật	danh từ
+exploit	khai thác lỗ hổng	động từ
+breach	vụ rò rỉ dữ liệu	danh từ
+threat	mối đe doạ	danh từ
+malware	phần mềm độc hại	danh từ
+phishing	lừa đảo giả mạo	danh từ
+sanitize	làm sạch dữ liệu đầu vào	động từ
+validation	kiểm tra tính hợp lệ	danh từ
+privacy	quyền riêng tư	danh từ
+confidentiality	tính bảo mật thông tin	danh từ
+anonymize	ẩn danh hoá dữ liệu	động từ
+audit log	nhật ký rà soát	danh từ
+least privilege	nguyên tắc quyền tối thiểu	danh từ
 
-# --- y tế, theo đề bài đang thử ---
-appointment	lịch hẹn, cuộc hẹn	danh từ
-prescription	đơn thuốc	danh từ
-consultation	buổi khám, buổi tư vấn	danh từ
-counselor	chuyên viên tư vấn	danh từ
-counselors	chuyên viên tư vấn	danh từ
-therapist	nhà trị liệu	danh từ
-therapeutic	thuộc về trị liệu	tính từ
-screening	sàng lọc	danh từ
-stigma	định kiến xã hội	danh từ
-deterioration	sự xấu đi	danh từ
-intervention	sự can thiệp	danh từ
-telemedicine	khám bệnh từ xa	danh từ
+# ============================================================ KIỂM THỬ
+testing	kiểm thử	danh từ
+test case	ca kiểm thử	danh từ
+test suite	bộ kiểm thử	danh từ
+unit test	kiểm thử đơn vị	danh từ
+integration test	kiểm thử tích hợp	danh từ
+system test	kiểm thử hệ thống	danh từ
+acceptance test	kiểm thử chấp nhận	danh từ
+regression	lỗi tái phát	danh từ
+smoke test	kiểm thử sơ bộ	danh từ
+edge case	trường hợp biên	danh từ
+boundary	giá trị biên	danh từ
+coverage	độ bao phủ mã	danh từ
+assertion	phép khẳng định trong kiểm thử	danh từ
+mock	đối tượng giả lập	danh từ
+stub	mã giả lập tạm	danh từ
+fixture	dữ liệu chuẩn bị cho kiểm thử	danh từ
+debugging	gỡ lỗi	danh từ
+breakpoint	điểm dừng khi gỡ lỗi	danh từ
+reproduce	tái hiện lỗi	động từ
+expected result	kết quả mong đợi	danh từ
+actual result	kết quả thực tế	danh từ
+
+# ============================================================ QUẢN LÝ MÃ NGUỒN
+repository	kho mã nguồn	danh từ
+clone	sao chép kho mã	động từ
+checkout	chuyển sang nhánh	động từ
+pull request	yêu cầu gộp mã	danh từ
+merge conflict	xung đột khi gộp nhánh	danh từ
+rebase	dời gốc nhánh	động từ
+tag	thẻ đánh dấu phiên bản	danh từ
+diff	phần khác biệt giữa hai bản	danh từ
+revert	hoàn tác thay đổi	động từ
+changelog	nhật ký thay đổi	danh từ
+versioning	cách đánh số phiên bản	danh từ
+
+# ============================================================ DỮ LIỆU LỚN VÀ AI
+machine learning	học máy	danh từ
+training	huấn luyện mô hình	danh từ
+inference	suy luận của mô hình	danh từ
+model	mô hình	danh từ
+dataset	tập dữ liệu	danh từ
+feature	đặc trưng dữ liệu	danh từ
+label	nhãn dữ liệu	danh từ
+overfitting	học vẹt, khớp quá mức	danh từ
+accuracy	độ chính xác	danh từ
+threshold	ngưỡng	danh từ
+embedding	vector biểu diễn ngữ nghĩa	danh từ
+tokenization	tách chuỗi thành đơn vị nhỏ	danh từ
+prompt	câu lệnh đưa cho mô hình	danh từ
+fine-tuning	tinh chỉnh mô hình	danh từ
+quantization	lượng tử hoá mô hình	danh từ
+pipeline	chuỗi xử lý dữ liệu	danh từ
+
+# ============================================================ GIAO DIỆN NGƯỜI DÙNG
+layout	bố cục	danh từ
+widget	thành phần giao diện	danh từ
+form	biểu mẫu	danh từ
+dropdown	danh sách xổ xuống	danh từ
+checkbox	ô đánh dấu	danh từ
+toggle	nút bật tắt	danh từ
+tooltip	chú thích khi rê chuột	danh từ
+placeholder	chữ gợi ý trong ô nhập	danh từ
+navigation	điều hướng	danh từ
+accessibility	khả năng tiếp cận cho người khuyết tật	danh từ
+wireframe	bản phác giao diện	danh từ
+mockup	bản mô phỏng giao diện	danh từ
+
+# ============================================================ ĐỘNG TỪ HAY GẶP TRONG ĐỀ BÀI
+identify	xác định, chỉ ra	động từ
+justify	giải thích lý do	động từ
+describe	mô tả	động từ
+outline	trình bày khái quát	động từ
+evaluate	đánh giá	động từ
+assess	đánh giá	động từ
+compare	so sánh	động từ
+distinguish	phân biệt	động từ
+illustrate	minh hoạ	động từ
+summarize	tóm tắt	động từ
+summarise	tóm tắt	động từ
+state	nêu rõ	động từ
+list	liệt kê	động từ
+propose	đề xuất	động từ
+analyse	phân tích	động từ
+analyze	phân tích	động từ
+demonstrate	chứng minh, thể hiện	động từ
+apply	áp dụng	động từ
+derive	suy ra	động từ
+infer	suy luận ra	động từ
+inferred	được suy ra	động từ
+assume	giả sử	động từ
+classify	phân loại	động từ
+specify	nêu cụ thể	động từ
+label	ghi nhãn, chú thích	động từ
+map	đối chiếu, ánh xạ	động từ
+ensure	bảo đảm	động từ
+maintain	bảo trì, duy trì	động từ
+test	kiểm thử	động từ
+review	xem xét, rà soát	động từ
+submit	nộp bài	động từ
+reflect	phản ánh	động từ
+address	giải quyết, đề cập tới	động từ
+accommodate	đáp ứng được	động từ
+mention	đề cập	động từ
+mentioned	đã đề cập	động từ
+require	đòi hỏi	động từ
+permit	cho phép	động từ
+permitted	được phép	tính từ
+exceed	vượt quá	động từ
+exceeded	bị vượt quá	tính từ
+curate	tuyển chọn và biên tập	động từ
+configure	cấu hình	động từ
+integrate	tích hợp	động từ
+escalate	chuyển lên cấp cao hơn	động từ
+
+# ============================================================ CỤM KỸ THUẬT HAY DỊCH SAI
+base class	lớp cơ sở	danh từ
+parent class	lớp cha	danh từ
+child class	lớp con	danh từ
+subclass	lớp con	danh từ
+superclass	lớp cha	danh từ
+abstract class	lớp trừu tượng	danh từ
+data type	kiểu dữ liệu	danh từ
+return type	kiểu trả về	danh từ
+source code	mã nguồn	danh từ
+codebase	mã nguồn của dự án	danh từ
+code review	việc rà soát mã nguồn	danh từ
+stage	giai đoạn	danh từ
+stages	giai đoạn	danh từ
+phase	pha, giai đoạn	danh từ
+scenario	kịch bản	danh từ
+happy path	kịch bản thuận lợi	danh từ
+non-functional	phi chức năng	tính từ
+functional	chức năng	tính từ
+functional requirement	yêu cầu chức năng	danh từ
+peak period	giai đoạn cao điểm	danh từ
+time slot	khung giờ	danh từ
+double booking	đặt trùng chỗ	danh từ
+access control	kiểm soát truy cập	danh từ
+role-based	dựa trên vai trò	tính từ
+user account	tài khoản người dùng	danh từ
+user group	nhóm người dùng	danh từ
+end user	người dùng cuối	danh từ
+third party	bên thứ ba	danh từ
+at least	ít nhất	phó từ
+at most	nhiều nhất	phó từ
+as follows	như sau	phó từ
+easier	dễ hơn	tính từ
+# --- do trong phat hien khi do tren tai lieu that ---
+life cycle	vòng đời	danh từ
+software development life cycle	vòng đời phát triển phần mềm	danh từ
+development life cycle	vòng đời phát triển	danh từ
+produce	tạo ra, sinh ra	động từ
+produced	được tạo ra	động từ
+postcondition	điều kiện sau khi thực hiện	danh từ
+justify	giải thích lý do, biện minh	động từ
+argument	lý lẽ, luận điểm	danh từ
+suitable	phù hợp	tính từ
+complete	đầy đủ, hoàn chỉnh	tính từ
+restrict	giới hạn, hạn chế	động từ
+inherit	kế thừa	động từ
+inherits	kế thừa	động từ
+child class	lớp con	danh từ
+derived class	lớp dẫn xuất	danh từ
+smaller	nhỏ hơn	tính từ
+small	nhỏ, bé	tính từ
+public	công khai	tính từ
+private	riêng tư, riêng	tính từ
+protected	được bảo vệ	tính từ
+method	phương thức	danh từ
+methods	phương thức	danh từ
