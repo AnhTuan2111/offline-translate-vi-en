@@ -162,8 +162,13 @@ public final class ImporterMain {
             long malformed = parser instanceof AnhViet109KParser av ? av.malformedLineCount() : 0;
             System.out.printf("  %,d entry%s%n", count,
                     malformed > 0 ? String.format(", %,d dong loi", malformed) : "");
+            // Uu tien: bang thuat ngu truyen them o dong lenh dung TREN tu dien nen (id 0).
+            // Truyen mot bang thuat ngu vao la mot quyet dinh co y cua nguoi dung, con tu dien
+            // nen la nen chung - de "priority = id" thi nen luon thang va bang thuat ngu thanh
+            // vo nghia. Da mat mot lan do lai toan bo tai lieu vi quen sua tay file nay.
+            int priority = id == 0 ? allSources.size() - 1 : id - 1;
             catalog.add(new DictSource(id, displayName(file), parser.formatId(),
-                    file.getFileName().toString(), count, true, id));
+                    file.getFileName().toString(), count, true, priority));
         }
         System.out.printf("  tong %,d entry tu %d nguon, %,d ms%n",
                 entries.size(), catalog.size(), ms(t0));
