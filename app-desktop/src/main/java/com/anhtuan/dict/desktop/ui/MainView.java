@@ -13,6 +13,7 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
+import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.concurrent.Task;
 import com.anhtuan.dict.desktop.config.NmtSupport;
@@ -147,6 +148,12 @@ public final class MainView {
             modeButtons.put(m, b);
             bar.getChildren().add(b);
         }
+
+        Button sources = new Button("Nguồn từ điển");
+        sources.getStyleClass().add("source-button");
+        sources.setOnAction(e -> SourceDialog.show(
+                input.getScene().getWindow(), ctx, this::run));
+        bar.getChildren().add(sources);
 
         // Chi hien khi ca thu vien lan mo hinh deu co. Ban dong goi mac dinh khong kem
         // mo hinh AI, luc do o nay bien mat va app chay y nhu cu.

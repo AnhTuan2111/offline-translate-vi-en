@@ -191,6 +191,52 @@
     -fx-padding: 12 0 0 0;
 }
 
+.source-button {
+    -fx-background-color: #262a33;
+    -fx-text-fill: #b9c0cc;
+    -fx-background-radius: 6;
+    -fx-padding: 6 12 6 12;
+    -fx-cursor: hand;
+}
+
+.source-button:hover {
+    -fx-background-color: #2f3540;
+}
+
+.source-dialog {
+    -fx-background-color: #1b1d23;
+}
+
+.source-row {
+    -fx-background-color: #21242c;
+    -fx-background-radius: 6;
+    -fx-padding: 8 10 8 10;
+    -fx-alignment: center-left;
+}
+
+.source-row .check-box {
+    -fx-text-fill: #e8ecf2;
+    -fx-font-size: 14px;
+}
+
+.source-count {
+    -fx-text-fill: #6b7280;
+    -fx-font-size: 12px;
+}
+
+.source-move {
+    -fx-background-color: #2b303a;
+    -fx-text-fill: #b9c0cc;
+    -fx-background-radius: 4;
+    -fx-padding: 2 8 2 8;
+    -fx-cursor: hand;
+}
+
+.source-warning {
+    -fx-text-fill: #d8a657;
+    -fx-font-size: 12.5px;
+}
+
 .nmt-toggle {
     -fx-text-fill: #d8a657;
     -fx-font-size: 12.5px;

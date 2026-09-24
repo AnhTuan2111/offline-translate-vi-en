@@ -6,6 +6,7 @@ import com.anhtuan.dict.core.lexicon.LexicalPrior;
 import com.anhtuan.dict.core.lexicon.LexiconFormat;
 import com.anhtuan.dict.core.nlp.ViCompounds;
 import com.anhtuan.dict.core.pack.PackReader;
+import com.anhtuan.dict.core.source.SourceCatalog;
 import com.anhtuan.dict.core.service.DictionaryGlossEngine;
 import com.anhtuan.dict.core.service.LookupService;
 import com.anhtuan.dict.core.service.ReverseSearchService;
@@ -46,6 +47,7 @@ public final class AppContext implements AutoCloseable {
     private final InvertedIndex trigramIndex;
     private final LexicalPrior lexicalPrior;
     private final ViCompounds compounds;
+    private SourceCatalog catalog;
 
     private final LookupService lookupService;
     private final ReverseSearchService reverseSearchService;
@@ -63,7 +65,9 @@ public final class AppContext implements AutoCloseable {
         this.viNoDiacIndex = InvertedIndex.open(dataDir.resolve(IndexFormat.VI_NODIAC_INDEX));
         this.trigramIndex = InvertedIndex.open(dataDir.resolve(IndexFormat.TRIGRAM_INDEX));
 
-        this.lookupService = new LookupService(pack);
+        this.catalog = SourceCatalog.loadOrDefault(dataDir.resolve(SourceCatalog.FILE_NAME),
+                "Anh-Việt 109K", pack.entryCount());
+        this.lookupService = new LookupService(pack, catalog);
         // Thieu lex.bin thi app van chay, chi chon nghia kem hon - khong bat nguoi dung
         // phai sinh lai du lieu.
         this.lexicalPrior = LexicalPrior.openIfPresent(dataDir.resolve(LexiconFormat.FILE_NAME));
@@ -72,6 +76,7 @@ public final class AppContext implements AutoCloseable {
         this.reverseSearchService =
                 new ReverseSearchService(pack, viIndex, viNoDiacIndex, trigramIndex,
                         compounds, lexicalPrior);
+        this.reverseSearchService.setCatalog(catalog);
         // Quet vung KEYS mot lan de lay 5.927 tu mo dau cum - re hon giu mot file rieng.
         this.phraseStarters = pack.multiWordStarters();
         this.glossEngine = new DictionaryGlossEngine(lookupService, phraseStarters, lexicalPrior);
@@ -114,6 +119,21 @@ public final class AppContext implements AutoCloseable {
     /** Thoi gian nap du lieu, hien o thanh trang thai lam bang chung do duoc. */
     public long startupMillis() {
         return startupMillis;
+    }
+
+    public SourceCatalog catalog() {
+        return catalog;
+    }
+
+    /**
+     * Nguoi dung vua bat/tat hoac doi thu tu nguon tu dien (PLAN.md F5).
+     * Ap dung ngay cho ca tra cuu lan tim kiem, roi ghi xuong dia de lan sau mo len van vay.
+     */
+    public void updateCatalog(SourceCatalog updated) {
+        this.catalog = updated;
+        lookupService.setCatalog(updated);
+        reverseSearchService.setCatalog(updated);
+        updated.save(dataDir.resolve(SourceCatalog.FILE_NAME));
     }
 
     public ViCompounds compounds() {
