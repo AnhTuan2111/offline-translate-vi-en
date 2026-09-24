@@ -19,6 +19,7 @@ Thumbs.db
 .DS_Store
 
 # Packing
-/dist/out/
+# Ban dong goi (jpackage) - 97 MB, sinh lai bang scripts/dong-goi.ps1
+/dist/
 *.msi
 *.exe
