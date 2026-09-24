@@ -1,0 +1,222 @@
+/*
+ * Giao dien toi, chu to de doc lau khong moi mat.
+ * Khong dung font ngoai: chi Segoe UI (co san tren Windows) va he thong.
+ * Tieng Viet can font co du dau - Segoe UI va Consolas deu du.
+ */
+
+.root {
+    -fx-background-color: #1b1d23;
+    -fx-font-family: "Segoe UI", system;
+    -fx-font-size: 14px;
+}
+
+/* ---------- thanh cong cu ---------- */
+
+.toggle-button {
+    -fx-background-color: #262a33;
+    -fx-text-fill: #b9c0cc;
+    -fx-background-radius: 6;
+    -fx-padding: 6 12 6 12;
+    -fx-cursor: hand;
+}
+
+.toggle-button:selected {
+    -fx-background-color: #3b6ea5;
+    -fx-text-fill: white;
+}
+
+.search-input {
+    -fx-background-color: #262a33;
+    -fx-text-fill: #e8ecf2;
+    -fx-prompt-text-fill: #6b7280;
+    -fx-background-radius: 6;
+    -fx-padding: 9;
+    -fx-font-size: 15px;
+}
+
+.result-scroll, .result-scroll .viewport {
+    -fx-background-color: transparent;
+}
+
+.status {
+    -fx-text-fill: #6b7280;
+    -fx-font-size: 12px;
+}
+
+.message {
+    -fx-text-fill: #9aa4b2;
+    -fx-font-size: 13px;
+}
+
+/* ---------- muc tu ---------- */
+
+.result-box {
+    -fx-padding: 4 2 12 2;
+}
+
+.headline {
+    -fx-padding: 8 0 2 0;
+}
+
+.headword {
+    -fx-fill: #e8ecf2;
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+}
+
+.ipa {
+    -fx-fill: #7f9cc0;
+    -fx-font-size: 14px;
+}
+
+.variant, .homograph-note {
+    -fx-fill: #6b7280;
+    -fx-text-fill: #6b7280;
+    -fx-font-size: 12px;
+}
+
+.sense {
+    -fx-padding: 4 0 4 8;
+}
+
+.pos {
+    -fx-text-fill: #d8a657;
+    -fx-font-style: italic;
+    -fx-padding: 4 0 2 0;
+}
+
+.gloss {
+    -fx-text-fill: #e8ecf2;
+    -fx-padding: 1 0 1 10;
+}
+
+.example {
+    -fx-text-fill: #8c95a3;
+    -fx-font-size: 12.5px;
+    -fx-padding: 0 0 0 22;
+}
+
+.section-title {
+    -fx-text-fill: #89b482;
+    -fx-font-weight: bold;
+    -fx-padding: 10 0 2 4;
+}
+
+.idiom {
+    -fx-padding: 2 0 2 10;
+}
+
+.idiom-phrase {
+    -fx-text-fill: #89b482;
+}
+
+.cross-ref {
+    -fx-text-fill: #7f9cc0;
+    -fx-padding: 2 0 2 8;
+}
+
+.phrase-card {
+    -fx-background-color: #23301f;
+    -fx-border-color: #89b482;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-border-width: 1;
+    -fx-padding: 8 10 8 10;
+}
+
+/* ---------- dich cau ---------- */
+
+.gloss-pane {
+    -fx-padding: 6 0 6 0;
+}
+
+.chip {
+    -fx-background-radius: 6;
+    -fx-padding: 5 9 5 9;
+    -fx-cursor: hand;
+}
+
+.chip-word {
+    -fx-background-color: #262a33;
+}
+
+.chip-phrase {
+    -fx-background-color: #2f4636;
+    -fx-border-color: #89b482;
+    -fx-border-radius: 6;
+    -fx-border-width: 1;
+}
+
+.chip-unknown {
+    -fx-background-color: #2b2530;
+    -fx-border-color: #5b4b5f;
+    -fx-border-radius: 6;
+    -fx-border-width: 1;
+}
+
+.chip-source {
+    -fx-text-fill: #e8ecf2;
+    -fx-font-weight: bold;
+}
+
+.chip-gloss {
+    -fx-text-fill: #9fd6a0;
+    -fx-font-size: 12.5px;
+}
+
+.chip-unknown .chip-gloss {
+    -fx-text-fill: #8c7f95;
+}
+
+.chip-more {
+    -fx-text-fill: #6b7280;
+    -fx-font-size: 10.5px;
+}
+
+.chip-punct {
+    -fx-text-fill: #6b7280;
+    -fx-padding: 12 0 0 0;
+}
+
+/* ---------- ket qua Viet -> Anh ---------- */
+
+.hit {
+    -fx-background-color: #21242c;
+    -fx-background-radius: 6;
+    -fx-padding: 7 10 7 10;
+    -fx-cursor: hand;
+}
+
+.hit:hover {
+    -fx-background-color: #2b303a;
+}
+
+.hit-rank {
+    -fx-fill: #6b7280;
+}
+
+.hit-word {
+    -fx-fill: #e8ecf2;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.hit-gloss {
+    -fx-text-fill: #9aa4b2;
+    -fx-font-size: 13px;
+}
+
+/* ---------- menu doi nghia ---------- */
+
+.context-menu {
+    -fx-background-color: #262a33;
+    -fx-background-radius: 6;
+}
+
+.menu-item .label {
+    -fx-text-fill: #e8ecf2;
+}
+
+.menu-item:focused {
+    -fx-background-color: #3b6ea5;
+}

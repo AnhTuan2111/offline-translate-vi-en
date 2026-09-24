@@ -1,31 +1,64 @@
 package com.anhtuan.dict.desktop;
 
-/**
- * TODO(M5) - Diem vao cua app desktop.
- *
- * Bootstrap Spring Boot NON-WEB roi mo cua so JavaFX (PLAN.md AD-8):
- * <pre>
- * public class DictApp extends Application {
- *     private ConfigurableApplicationContext ctx;
- *
- *     public void init() {
- *         ctx = new SpringApplicationBuilder(DesktopConfig.class)
- *                 .web(WebApplicationType.NONE)      // khong Tomcat, khong servlet
- *                 .run();
- *     }
- *     public void start(Stage stage) { ctx.getBean(MainView.class).show(stage); }
- *     public void stop() { ctx.close(); Platform.exit(); }
- * }
- * </pre>
- *
- * CANH BAO (PLAN.md AD-7): render ket qua bang TextFlow, TUYET DOI khong dung WebView.
- * Kiem tra: mvn -pl app-desktop dependency:tree | grep javafx-web  -&gt; phai rong.
- */
-public final class DictApp {
+import com.anhtuan.dict.desktop.config.AppContext;
+import com.anhtuan.dict.desktop.ui.MainView;
+import javafx.application.Application;
+import javafx.application.Platform;
+import javafx.scene.Scene;
+import javafx.scene.control.Label;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
 
-    public static void main(String[] args) {
-        throw new UnsupportedOperationException("TODO(M5): xem PLAN.md muc 10, milestone M5");
+/**
+ * Diem vao cua app desktop.
+ *
+ * <p>Vong doi cua JavaFX duoc dung dung nhu no duoc thiet ke:
+ * <ul>
+ *   <li>{@link #init()} chay TRUOC khi UI hien - nap du lieu o day thi cua so khong
+ *       bi hien ra roi treo mot luc;</li>
+ *   <li>{@link #start(Stage)} chi con viec ve, chay tren JavaFX Application Thread;</li>
+ *   <li>{@link #stop()} dong {@link AppContext} de unmap cac file mmap ngay lap tuc.</li>
+ * </ul>
+ *
+ * <p>Khong co Spring Boot o day - ly do da ghi trong {@link AppContext}.
+ */
+public final class DictApp extends Application {
+
+    private AppContext ctx;
+    private String failure;
+
+    @Override
+    public void init() {
+        try {
+            ctx = new AppContext();
+        } catch (RuntimeException e) {
+            // Thieu du lieu la loi thuong gap nhat khi chay lan dau. Bao ngay tren cua so,
+            // dung de nguoi dung phai di doc stack trace trong console.
+            failure = e.getMessage();
+        }
     }
 
-    private DictApp() {}
+    @Override
+    public void start(Stage stage) {
+        if (ctx == null) {
+            Label label = new Label(failure);
+            label.setWrapText(true);
+            label.setStyle("-fx-padding: 16; -fx-font-family: 'Consolas', monospace;");
+            stage.setScene(new Scene(new VBox(label), 720, 260));
+            stage.setTitle("Tu dien offline - thieu du lieu");
+            stage.show();
+            return;
+        }
+        new MainView(ctx).show(stage);
+    }
+
+    @Override
+    public void stop() {
+        if (ctx != null) ctx.close();
+        Platform.exit();
+    }
+
+    public static void main(String[] args) {
+        launch(args);
+    }
 }

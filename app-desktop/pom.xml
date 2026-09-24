@@ -13,7 +13,8 @@
   <artifactId>app-desktop</artifactId>
   <name>app-desktop</name>
   <description>
-    UI JavaFX + Spring Boot non-web. Bat dau tu M5.
+    UI JavaFX. KHONG co Spring: AD-8 da duoc sua lai, DI lam bang composition root
+    thu cong trong config/AppContext.java (ly do ghi ngay trong javadoc cua class do).
 
     CANH BAO (PLAN.md AD-7): TUYET DOI khong them javafx-web.
     No keo theo WebKit: +35 MB dia, +40 MB RAM. Dung TextFlow de render.
@@ -33,18 +34,8 @@
       <version>${javafx.version}</version>
     </dependency>
 
-    <!-- Spring Boot non-web: chi lay DI + config, KHONG lay starter-web. -->
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter</artifactId>
-    </dependency>
-
-    <!-- Du lieu nguoi dung (lich su, tu da luu). PLAN.md AD-10. -->
-    <dependency>
-      <groupId>org.xerial</groupId>
-      <artifactId>sqlite-jdbc</artifactId>
-      <version>${sqlite.version}</version>
-    </dependency>
+    <!-- KHONG co dependency nao khac. Toan bo app chi gom: dict-core (0 dep) + JavaFX.
+         sqlite-jdbc se duoc them lai o M6 khi thuc su can luu lich su nguoi dung. -->
   </dependencies>
 
   <build>
