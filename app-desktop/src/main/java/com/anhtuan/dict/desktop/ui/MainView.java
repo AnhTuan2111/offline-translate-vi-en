@@ -110,9 +110,8 @@ public final class MainView {
     /**
      * Cho phep mo san mot truy van: {@code -Ddict.query="give up" -Ddict.mode=word}.
      *
-     * <p>Co ba cong dung that: chup anh man hinh de dan vao tai lieu ma khong phai go tay,
-     * kiem thu tay nhanh, va sau nay la duong vao cho tinh nang tra nhanh tu tray (F6) -
-     * luc do chi viec goi cung mot ham voi noi dung clipboard.
+     * <p>Hai cong dung that: chup anh man hinh de dan vao tai lieu ma khong phai go tay,
+     * va kiem thu tay nhanh.
      */
     private void applyStartupQuery() {
         // -Ddict.nmt=true bat san mo hinh AI (dung khi chup anh va kiem thu tay)
@@ -365,11 +364,6 @@ public final class MainView {
         mode = target;
         selectModeButton();
         run();
-    }
-
-    /** Tra mot tu tu ben ngoai goi vao (popup tra nhanh o khay he thong). */
-    public void lookup(String headword) {
-        openWord(headword);
     }
 
     /** Bam vao mot ket qua -> mo han muc tu do o che do tra tu. */

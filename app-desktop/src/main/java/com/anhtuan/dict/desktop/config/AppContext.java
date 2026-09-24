@@ -24,7 +24,7 @@ import java.util.Set;
  *   <li>~10 MB jar (spring-core / context / beans / aop / expression, boot,
  *       autoconfigure, logback, snakeyaml) cho dung mot viec la goi {@code new} 6 lan;</li>
  *   <li>them 0,5-1,5 giay khoi dong cho classpath scanning va context refresh - ma voi
- *       app tra tu goi tu tray (F6) thi do tre khoi dong chinh la thu nguoi dung cam nhan;</li>
+ *       app tra tu thi do tre khoi dong chinh la thu nguoi dung cam nhan dau tien;</li>
  *   <li>DI bang reflection lam kho jlink/jpackage - dung cai rui ro "ket o M8" ma
  *       PLAN.md muc 12 da ghi.</li>
  * </ul>
