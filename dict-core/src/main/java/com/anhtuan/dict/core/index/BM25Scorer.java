@@ -10,17 +10,35 @@ public final class BM25Scorer {
 
     /** Do bao hoa tan suat tu. 1.2 la gia tri chuan cua Lucene. */
     public static final double K1 = 1.2;
-    /** Muc do phat van ban dai. 0.75 la gia tri chuan. */
+    /** Muc do phat van ban dai. 0.75 la gia tri chuan cho van ban thong thuong. */
     public static final double B = 0.75;
+    /**
+     * He so b dung cho TU DIEN. Do thuc te khi go "chăm sóc" voi b = 0,75:
+     * <pre>
+     *   [herdsman, tend, horse-hoe, childminding, loving-kindness]   <- toan tu hiem
+     * </pre>
+     * Nguyen nhan: b cang lon thi BM25 cang PHAT tai lieu dai. Voi van ban thong thuong
+     * dieu do dung (bai dai chua nhieu tu ngau nhien hon). Voi tu dien thi NGUOC:
+     * "tai lieu dai" = tu quan trong, {@code care} co 26 nghia va vi du, {@code horse-hoe}
+     * co 1. Ha b xuong 0,2 dua {@code care} len dau, va day la ly do duy nhat chung ta
+     * lech khoi gia tri chuan cua Lucene.
+     */
+    public static final double DICTIONARY_B = 0.2;
 
     private final int docCount;
     private final double avgDocLength;
+    private final double b;
 
     public BM25Scorer(int docCount, double avgDocLength) {
+        this(docCount, avgDocLength, B);
+    }
+
+    public BM25Scorer(int docCount, double avgDocLength, double b) {
         if (docCount <= 0) throw new IllegalArgumentException("docCount phai > 0");
         if (avgDocLength <= 0) throw new IllegalArgumentException("avgDocLength phai > 0");
         this.docCount = docCount;
         this.avgDocLength = avgDocLength;
+        this.b = b;
     }
 
     /**
@@ -34,7 +52,7 @@ public final class BM25Scorer {
     /** Diem cua mot term trong mot document. Cong don qua cac term de ra diem cuoi. */
     public double score(int docFreq, int termFreq, int docLength) {
         double idf = idf(docFreq);
-        double norm = K1 * (1 - B + B * docLength / avgDocLength);
+        double norm = K1 * (1 - b + b * docLength / avgDocLength);
         return idf * (termFreq * (K1 + 1)) / (termFreq + norm);
     }
 

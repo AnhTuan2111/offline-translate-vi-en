@@ -47,6 +47,33 @@ public final class TextNormalizer {
         return removeDiacritics(stripBom(raw).trim().toLowerCase(Locale.ROOT));
     }
 
+    /**
+     * Tach mot dong nghia tieng Viet thanh token de dung index (PLAN.md 7.1).
+     *
+     * <p>BAT BUOC dung chung ham nay o CA HAI phia: luc IndexWriter dung postings va luc
+     * nguoi dung go truy van. Lech nhau mot quy tac nho (vi du ben nay giu dau gach ngang,
+     * ben kia bo) la truy van khong bao gio khop - khong crash, chi la "tim khong ra".
+     *
+     * <p>Quy tac: token = chuoi lien tiep cac ky tu chu hoac so (theo Unicode, nen giu
+     * duoc chu co dau tieng Viet); moi thu khac la dau ngat. Ket qua da lowercase.
+     */
+    public static java.util.List<String> splitTokens(String text) {
+        if (text == null || text.isEmpty()) return java.util.List.of();
+        java.util.List<String> out = new java.util.ArrayList<>(8);
+        StringBuilder cur = new StringBuilder(16);
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (Character.isLetterOrDigit(c)) {
+                cur.append(Character.toLowerCase(c));
+            } else if (cur.length() > 0) {
+                out.add(cur.toString());
+                cur.setLength(0);
+            }
+        }
+        if (cur.length() > 0) out.add(cur.toString());
+        return out;
+    }
+
     public static String stripBom(String s) {
         return (s != null && !s.isEmpty() && s.charAt(0) == BOM) ? s.substring(1) : s;
     }
