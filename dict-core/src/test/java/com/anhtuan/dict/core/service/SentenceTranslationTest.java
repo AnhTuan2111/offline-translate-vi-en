@@ -142,6 +142,18 @@ class SentenceTranslationTest {
     }
 
     @Test
+    @DisplayName("một dòng nghĩa được tách thành từng phương án riêng")
+    void glossAlternativesAreSplit() {
+        // Bang xac suat cham diem TUNG phuong an, nen phai tach ra truoc. Phuong an dau
+        // cua tu dien khong phai luc nao cung la phuong an dung.
+        assertEquals(List.of("cho", "biếu", "tặng", "ban"),
+                RuleBasedTranslationEngine.alternatives("cho, biếu, tặng, ban"));
+        assertEquals(List.of("loại a", "hạng nhất"),
+                RuleBasedTranslationEngine.alternatives("(thông tục) loại a, hạng nhất"));
+        assertTrue(RuleBasedTranslationEngine.alternatives(null).isEmpty());
+    }
+
+    @Test
     @DisplayName("nghĩa dài được rút còn phương án đầu")
     void longGlossesAreShortened() {
         assertEquals("sách", RuleBasedTranslationEngine.shorten("sách, quyển sách"));

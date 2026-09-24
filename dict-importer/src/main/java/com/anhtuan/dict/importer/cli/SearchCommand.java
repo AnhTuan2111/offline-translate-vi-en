@@ -1,6 +1,8 @@
 package com.anhtuan.dict.importer.cli;
 
 import com.anhtuan.dict.core.index.IndexFormat;
+import com.anhtuan.dict.core.lexicon.LexicalPrior;
+import com.anhtuan.dict.core.lexicon.LexiconFormat;
 import com.anhtuan.dict.core.index.InvertedIndex;
 import com.anhtuan.dict.core.model.Segment;
 import com.anhtuan.dict.core.pack.PackReader;
@@ -77,8 +79,13 @@ final class SearchCommand {
                     }
                 }
                 case "sent" -> {
-                    var glossEngine = new DictionaryGlossEngine(lookup, pack.multiWordStarters());
-                    var ruleEngine = new RuleBasedTranslationEngine(glossEngine, lookup);
+                    var prior = LexicalPrior.openIfPresent(dataDir.resolve(LexiconFormat.FILE_NAME));
+                    var glossEngine = new DictionaryGlossEngine(
+                            lookup, pack.multiWordStarters(), prior);
+                    var ruleEngine = new RuleBasedTranslationEngine(glossEngine, lookup, prior);
+                    out.println("  (bang xac suat: "
+                            + (prior.isAvailable() ? String.format("%,d tu", prior.wordCount()) : "KHONG CO")
+                            + ")");
 
                     out.println("  BAN DICH (luat):");
                     out.println("    " + ruleEngine.translate(query).getFirst().displayGloss());

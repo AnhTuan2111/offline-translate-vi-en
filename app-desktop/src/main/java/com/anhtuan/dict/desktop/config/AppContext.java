@@ -2,6 +2,8 @@ package com.anhtuan.dict.desktop.config;
 
 import com.anhtuan.dict.core.index.IndexFormat;
 import com.anhtuan.dict.core.index.InvertedIndex;
+import com.anhtuan.dict.core.lexicon.LexicalPrior;
+import com.anhtuan.dict.core.lexicon.LexiconFormat;
 import com.anhtuan.dict.core.pack.PackReader;
 import com.anhtuan.dict.core.service.DictionaryGlossEngine;
 import com.anhtuan.dict.core.service.LookupService;
@@ -41,6 +43,7 @@ public final class AppContext implements AutoCloseable {
     private final InvertedIndex viIndex;
     private final InvertedIndex viNoDiacIndex;
     private final InvertedIndex trigramIndex;
+    private final LexicalPrior lexicalPrior;
 
     private final LookupService lookupService;
     private final ReverseSearchService reverseSearchService;
@@ -63,8 +66,12 @@ public final class AppContext implements AutoCloseable {
                 new ReverseSearchService(pack, viIndex, viNoDiacIndex, trigramIndex);
         // Quet vung KEYS mot lan de lay 5.927 tu mo dau cum - re hon giu mot file rieng.
         this.phraseStarters = pack.multiWordStarters();
-        this.glossEngine = new DictionaryGlossEngine(lookupService, phraseStarters);
-        this.sentenceEngine = new RuleBasedTranslationEngine(glossEngine, lookupService);
+        // Thieu lex.bin thi app van chay, chi chon nghia kem hon - khong bat nguoi dung
+        // phai sinh lai du lieu.
+        this.lexicalPrior = LexicalPrior.openIfPresent(dataDir.resolve(LexiconFormat.FILE_NAME));
+        this.glossEngine = new DictionaryGlossEngine(lookupService, phraseStarters, lexicalPrior);
+        this.sentenceEngine =
+                new RuleBasedTranslationEngine(glossEngine, lookupService, lexicalPrior);
 
         this.startupMillis = (System.nanoTime() - t0) / 1_000_000;
     }
@@ -104,9 +111,14 @@ public final class AppContext implements AutoCloseable {
         return startupMillis;
     }
 
+    public LexicalPrior lexicalPrior() {
+        return lexicalPrior;
+    }
+
     @Override
     public void close() {
         // Dong theo thu tu nguoc lai luc mo. Moi cai unmap ngay nho Arena.
+        lexicalPrior.close();
         trigramIndex.close();
         viNoDiacIndex.close();
         viIndex.close();

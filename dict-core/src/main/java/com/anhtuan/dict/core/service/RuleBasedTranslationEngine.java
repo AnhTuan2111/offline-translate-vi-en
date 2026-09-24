@@ -1,10 +1,12 @@
 package com.anhtuan.dict.core.service;
 
+import com.anhtuan.dict.core.lexicon.LexicalPrior;
 import com.anhtuan.dict.core.model.Candidate;
 import com.anhtuan.dict.core.model.Segment;
 import com.anhtuan.dict.core.model.SegmentKind;
 import com.anhtuan.dict.core.nlp.FunctionWords;
 import com.anhtuan.dict.core.nlp.Lemmatizer;
+import com.anhtuan.dict.core.nlp.TextNormalizer;
 import com.anhtuan.dict.core.spi.TranslationEngine;
 
 import java.util.ArrayList;
@@ -44,10 +46,21 @@ public final class RuleBasedTranslationEngine implements TranslationEngine {
 
     private final DictionaryGlossEngine glossEngine;
     private final LookupService lookup;
+    private final LexicalPrior prior;
 
     public RuleBasedTranslationEngine(DictionaryGlossEngine glossEngine, LookupService lookup) {
+        this(glossEngine, lookup, LexicalPrior.empty());
+    }
+
+    /**
+     * @param prior bang xac suat dich tu hoc tu kho song ngu. Thieu no thi engine van chay,
+     *              chi chon nghia kem hon - xem {@link #pickBest}.
+     */
+    public RuleBasedTranslationEngine(DictionaryGlossEngine glossEngine, LookupService lookup,
+                                      LexicalPrior prior) {
         this.glossEngine = glossEngine;
         this.lookup = lookup;
+        this.prior = prior;
     }
 
     @Override
@@ -163,6 +176,12 @@ public final class RuleBasedTranslationEngine implements TranslationEngine {
 
             if (w.endsWith("ly") && hasAdv) {
                 it.pos = Pos.ADV;
+            } else if (it.past && afterSubject(prev) && (hasVerb || promoteToVerbViaLemma(it))) {
+                // Dang qua khu dung ngay sau chu ngu thi la DONG TU CHINH cua cau, du tu dien
+                // co ghi them tu loai tinh tu. "The government DECIDED to..." - khong kiem tra
+                // cho nay thi "decided" bi coi la tinh tu bo nghia cho cum dang sau.
+                if (hasVerb) preferLemmaForVerb(it);
+                it.pos = Pos.VERB;
             } else if (prev != null && prev.isFunc(FunctionWords.Category.TRANG_TU) && hasAdj) {
                 // "very COLD", "too SMALL": sau trang tu muc do gan nhu chac chan la tinh tu
                 it.pos = Pos.ADJ;
@@ -187,7 +206,8 @@ public final class RuleBasedTranslationEngine implements TranslationEngine {
                     FunctionWords.Category.DEMONSTRATIVE, FunctionWords.Category.GIOI_TU)
                     && hasNoun) {
                 it.pos = Pos.NOUN;
-            } else if (it.past && hasVerb) {
+            } else if (it.past && (hasVerb || promoteToVerbViaLemma(it))) {
+                if (hasVerb) preferLemmaForVerb(it);
                 it.pos = Pos.VERB;
             } else if (hasNoun) {
                 it.pos = Pos.NOUN;
@@ -210,6 +230,27 @@ public final class RuleBasedTranslationEngine implements TranslationEngine {
      *
      * @return true neu tim duoc, va {@code it.candidates} da duoc thay bang nghia cua lemma
      */
+    /**
+     * Doi sang nghia cua dang NGUYEN THE neu nguyen the cung la dong tu. Chi ap dung cho dong
+     * tu: voi danh tu so nhieu ("systems") thi hai muc tu noi chung cung mot nghia nen khong
+     * can, con voi dong tu thi muc tu dang chia hay mang nghia khac han.
+     */
+    private void preferLemmaForVerb(Item it) {
+        String w = it.source.toLowerCase(Locale.ROOT);
+        for (String cand : Lemmatizer.candidates(w)) {
+            if (cand.equals(w)) continue;
+            var resolved = lookup.resolve(cand);
+            if (resolved.isEmpty()) continue;
+            List<Candidate> viaLemma = lookup.candidatesOf(resolved.get().entries());
+            for (Candidate c : viaLemma) {
+                if (c.pos() != null && c.pos().contains("động từ")) {
+                    it.candidates = viaLemma;
+                    return;
+                }
+            }
+        }
+    }
+
     private boolean promoteToVerbViaLemma(Item it) {
         for (String cand : Lemmatizer.candidates(it.source.toLowerCase(Locale.ROOT))) {
             var resolved = lookup.resolve(cand);
@@ -225,6 +266,12 @@ public final class RuleBasedTranslationEngine implements TranslationEngine {
         return false;
     }
 
+    /** Dung ngay sau chu ngu (danh tu, dai tu) hoac dau cau. */
+    private static boolean afterSubject(Item prev) {
+        if (prev == null) return true;
+        return prev.pos == Pos.NOUN || prev.isFunc(FunctionWords.Category.PRONOUN);
+    }
+
     private static boolean hasPos(Item it, String posName) {
         for (Candidate c : it.candidates) {
             if (c.pos() != null && c.pos().contains(posName)) return true;
@@ -234,19 +281,39 @@ public final class RuleBasedTranslationEngine implements TranslationEngine {
 
     // ------------------------------------------------------------------ buoc 3: chon nghia
 
-    private static void chooseVietnamese(List<Item> items) {
+    private void chooseVietnamese(List<Item> items) {
         for (Item it : items) {
             if (it.pos == Pos.PUNCT) continue;
             if (it.fw != null) {
                 it.vi = it.fw.vi();
                 continue;
             }
-            Candidate chosen = pick(it);
-            it.vi = chosen == null ? it.source : shorten(chosen.gloss());
+            it.vi = pickBest(it);
         }
     }
 
-    private static Candidate pick(Item it) {
+    /**
+     * Chon chu tieng Viet cho mot tu, theo hai tang.
+     *
+     * <p><b>Tang 1 - ngu phap.</b> Loc lay cac nhom nghia dung TU LOAI da doan. Viec nay luat
+     * lam duoc chac chan nen no di truoc.
+     *
+     * <p><b>Tang 2 - thong ke.</b> Trong so nhung phuong an con lai, chon cai ma NGUOI TA
+     * THAT SU HAY DICH NHU VAY, dua vao {@link LexicalPrior}. Day la thu luat khong bao gio
+     * quyet dinh duoc: {@code government} co sau nghia danh tu ("sự cai trị", "chính phủ",
+     * "chính quyền", "chính thể"...) deu dung ngu phap ca, va tu dien xep "sự cai trị" len dau.
+     * Bang xac suat hoc tu 1,2 trieu cap cau biet {@code government} -> chính(0,41) phủ(0,39),
+     * nen "chính phủ" thang.
+     *
+     * <p>Cham diem tung PHUONG AN mot chu khong chi tung dong nghia: mot dong nghia cua tu
+     * dien thuong la mot chum ("cho, biếu, tặng, ban") va phuong an dau chua chac la phuong
+     * an dung.
+     *
+     * <p>Khong co bang xac suat thi tang 2 bi bo qua va ket qua quay ve nhu cu.
+     */
+    private String pickBest(Item it) {
+        if (it.candidates.isEmpty()) return it.source;
+
         String wanted = switch (it.pos) {
             case NOUN -> "danh từ";
             case VERB -> "động từ";
@@ -254,15 +321,49 @@ public final class RuleBasedTranslationEngine implements TranslationEngine {
             case ADV -> "phó từ";
             default -> null;
         };
+        List<Candidate> pool = new ArrayList<>(it.candidates.size());
         if (wanted != null) {
             for (Candidate c : it.candidates) {
-                if (c.pos() != null && c.pos().contains(wanted) && !isJunk(c.gloss())) return c;
+                if (c.pos() != null && c.pos().contains(wanted) && !isJunk(c.gloss())) pool.add(c);
             }
         }
-        for (Candidate c : it.candidates) {
-            if (!isJunk(c.gloss())) return c;
+        if (pool.isEmpty()) {
+            for (Candidate c : it.candidates) if (!isJunk(c.gloss())) pool.add(c);
         }
-        return it.candidates.isEmpty() ? null : it.candidates.getFirst();
+        if (pool.isEmpty()) return shorten(it.candidates.getFirst().gloss());
+
+        String fallback = shorten(pool.getFirst().gloss());
+        if (!prior.isAvailable()) return fallback;
+
+        String en = it.source.toLowerCase(Locale.ROOT);
+        String best = null;
+        double bestScore = 0;
+        for (Candidate c : pool) {
+            for (String alt : alternatives(c.gloss())) {
+                double score = prior.scoreGloss(en, TextNormalizer.splitTokens(alt));
+                if (score == 0 && c.headword() != null) {
+                    // Tu trong cau la dang chia ("systems"), bang chi biet dang goc ("system")
+                    score = prior.scoreGloss(c.headword(), TextNormalizer.splitTokens(alt));
+                }
+                if (score > bestScore) { bestScore = score; best = alt; }
+            }
+        }
+        return best != null ? best : fallback;
+    }
+
+    /**
+     * Tach mot dong nghia thanh cac phuong an rieng:
+     * "cho, biếu, tặng, ban" -&gt; [cho, biếu, tặng, ban].
+     */
+    static List<String> alternatives(String gloss) {
+        if (gloss == null) return List.of();
+        String cleaned = gloss.replaceAll("\\([^)]*\\)", " ").replaceAll("\\[[^]]*]", " ");
+        List<String> out = new ArrayList<>(4);
+        for (String part : cleaned.split("[,;]")) {
+            String v = part.replaceAll("\\s+", " ").trim();
+            if (!v.isEmpty()) out.add(v);
+        }
+        return out;
     }
 
     /**

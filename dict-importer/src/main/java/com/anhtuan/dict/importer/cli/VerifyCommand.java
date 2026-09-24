@@ -1,6 +1,8 @@
 package com.anhtuan.dict.importer.cli;
 
 import com.anhtuan.dict.core.index.IndexFormat;
+import com.anhtuan.dict.core.lexicon.LexicalPrior;
+import com.anhtuan.dict.core.lexicon.LexiconFormat;
 import com.anhtuan.dict.core.index.InvertedIndex;
 import com.anhtuan.dict.core.model.Entry;
 import com.anhtuan.dict.core.model.Segment;
@@ -131,8 +133,13 @@ final class VerifyCommand {
             checkOffsets(gloss, "He gave up his job.");
 
             section("Dich ca cau bang luat");
+            LexicalPrior prior =
+                    LexicalPrior.openIfPresent(dataDir.resolve(LexiconFormat.FILE_NAME));
+            check("co bang xac suat dich tu (lex.bin)", prior.isAvailable(),
+                    prior.isAvailable() ? String.format("%,d tu tieng Anh", prior.wordCount())
+                            : "thieu - chay lenh lexicon de sinh");
             var sentenceEngine = new com.anhtuan.dict.core.service.RuleBasedTranslationEngine(
-                    gloss, lookup);
+                    gloss, lookup, prior);
             checkSentence(sentenceEngine, "She went to the market yesterday",
                     new String[] {"Cô ấy", "đã", "chợ"});
             checkSentence(sentenceEngine, "The weather is very cold today",

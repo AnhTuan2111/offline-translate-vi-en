@@ -1,5 +1,6 @@
 package com.anhtuan.dict.core.service;
 
+import com.anhtuan.dict.core.lexicon.LexicalPrior;
 import com.anhtuan.dict.core.model.Candidate;
 import com.anhtuan.dict.core.model.Segment;
 import com.anhtuan.dict.core.model.SegmentKind;
@@ -38,10 +39,22 @@ public final class DictionaryGlossEngine implements TranslationEngine {
 
     private final LookupService lookup;
     private final Set<String> phraseStarters;
+    private final LexicalPrior prior;
 
     public DictionaryGlossEngine(LookupService lookup, Set<String> phraseStarters) {
+        this(lookup, phraseStarters, LexicalPrior.empty());
+    }
+
+    /**
+     * @param prior dung de XEP LAI thu tu cac nghia hien cho nguoi dung. Neu khong, o chu giai
+     *              hien "sự cai trị" trong khi cau dich ben tren lai dung "chính phủ" -
+     *              nguoi doc se tuong app mau thuan voi chinh no.
+     */
+    public DictionaryGlossEngine(LookupService lookup, Set<String> phraseStarters,
+                                 LexicalPrior prior) {
         this.lookup = lookup;
         this.phraseStarters = phraseStarters;
+        this.prior = prior;
     }
 
     @Override
@@ -106,14 +119,47 @@ public final class DictionaryGlossEngine implements TranslationEngine {
 
             Optional<LookupService.Resolution> res = lookup.resolve(words.get(wi));
             if (res.isPresent()) {
+                List<Candidate> candidates = byLikelihood(t.text(),
+                        lookup.candidatesOf(res.get().entries()));
                 out.add(new Segment(t.text(), t.start(), t.end(), SegmentKind.WORD,
-                        withFunctionWord(t.text(), lookup.candidatesOf(res.get().entries()))));
+                        withFunctionWord(t.text(), candidates)));
             } else {
                 out.add(new Segment(t.text(), t.start(), t.end(), SegmentKind.UNKNOWN, List.of()));
             }
             ti++;
             wi++;
         }
+        return out;
+    }
+
+    /**
+     * Xep lai cac nghia theo do hay dung THAT SU, lay tu bang xac suat (PLAN.md 7.4).
+     * Nghia nao khong co trong bang thi giu nguyen thu tu tu dien va nam sau.
+     */
+    private List<Candidate> byLikelihood(String source, List<Candidate> candidates) {
+        if (!prior.isAvailable() || candidates.size() < 2) return candidates;
+        String en = source.toLowerCase(java.util.Locale.ROOT);
+
+        record Scored(Candidate candidate, double score, int order) {}
+        List<Scored> scored = new ArrayList<>(candidates.size());
+        for (int i = 0; i < candidates.size(); i++) {
+            Candidate c = candidates.get(i);
+            double best = 0;
+            for (String alt : RuleBasedTranslationEngine.alternatives(c.gloss())) {
+                double s = prior.scoreGloss(en, TextNormalizer.splitTokens(alt));
+                if (s == 0 && c.headword() != null) {
+                    s = prior.scoreGloss(c.headword(), TextNormalizer.splitTokens(alt));
+                }
+                best = Math.max(best, s);
+            }
+            scored.add(new Scored(c, best, i));
+        }
+        scored.sort((a, b) -> {
+            int cmp = Double.compare(b.score(), a.score());
+            return cmp != 0 ? cmp : Integer.compare(a.order(), b.order());
+        });
+        List<Candidate> out = new ArrayList<>(candidates.size());
+        for (Scored sc : scored) out.add(sc.candidate());
         return out;
     }
 
