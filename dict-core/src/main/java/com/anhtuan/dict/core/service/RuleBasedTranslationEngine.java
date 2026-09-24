@@ -106,6 +106,7 @@ public final class RuleBasedTranslationEngine implements TranslationEngine {
         List<Item> items = toItems(glossEngine.translate(sentence));
         assignPartOfSpeech(items);
         chooseVietnamese(items);
+        markComparatives(items);
         applyGrammarRules(items);
         String vi = join(items);
 
@@ -140,7 +141,14 @@ public final class RuleBasedTranslationEngine implements TranslationEngine {
             String firstWord = text.split("\\s+")[0];
             it.past = Lemmatizer.isPastForm(firstWord);
             it.gerund = firstWord.toLowerCase(Locale.ROOT).endsWith("ing");
-            if (s.kind() == SegmentKind.PHRASE) it.pos = Pos.VERB;   // cum dong tu la chu yeu
+            // Cum nhieu tu: cu tin tu loai tu dien da ghi. Truoc day cho tat ca la dong tu vi
+            // nguon 109K chi co cum dong tu, nhung bang thuat ngu tu soan toan la DANH TU cum
+            // ("design pattern", "use case"). Coi la dong tu thi buoc sap lai danh ngu bo qua,
+            // ra "Đề xuất phù hợp mẫu thiết kế" thay vi "Đề xuất mẫu thiết kế phù hợp".
+            if (s.kind() == SegmentKind.PHRASE) {
+                it.pos = hasPos(it, "động từ") ? Pos.VERB
+                        : hasPos(it, "danh từ") ? Pos.NOUN : Pos.VERB;
+            }
             items.add(it);
         }
         return items;
@@ -176,6 +184,19 @@ public final class RuleBasedTranslationEngine implements TranslationEngine {
 
             if (w.endsWith("ly") && hasAdv) {
                 it.pos = Pos.ADV;
+            } else if (i == 0 && (hasVerb || promoteToVerbViaLemma(it))) {
+                // Tu dau cau mà co nghia dong tu = CAU MENH LENH. Van phong de bai, huong dan
+                // ky thuat gan nhu toan la cau nay: "Map the four stages...", "Write a complete
+                // specification...". Khong co luat nay thi "Map" ra "Bản đồ".
+                it.pos = Pos.VERB;
+            } else if (prev != null && (prev.pos == Pos.PUNCT
+                            || prev.isFunc(FunctionWords.Category.LIEN_TU))
+                    && verbBefore(items, i) && (hasVerb || promoteToVerbViaLemma(it))) {
+                // Liet ke dong tu: "easier to maintain, TEST, and SCALE" - ve truoc dau phay
+                // hoac truoc "and" la dong tu thi ve sau cung vay. Khong co luat nay thi
+                // "test" ra "vỏ" va "scale" ra "sự chia độ".
+                if (hasVerb) preferLemmaForVerb(it);
+                it.pos = Pos.VERB;
             } else if (it.past && afterSubject(prev) && (hasVerb || promoteToVerbViaLemma(it))) {
                 // Dang qua khu dung ngay sau chu ngu thi la DONG TU CHINH cua cau, du tu dien
                 // co ghi them tu loai tinh tu. "The government DECIDED to..." - khong kiem tra
@@ -284,6 +305,17 @@ public final class RuleBasedTranslationEngine implements TranslationEngine {
         return false;
     }
 
+    /** Truoc vi tri {@code at} (bo qua dau cau) co phai mot dong tu khong. */
+    private static boolean verbBefore(List<Item> items, int at) {
+        for (int i = at - 1; i >= 0; i--) {
+            Item before = items.get(i);
+            if (before.dropped || before.pos == Pos.PUNCT
+                    || before.isFunc(FunctionWords.Category.LIEN_TU)) continue;
+            return before.pos == Pos.VERB;
+        }
+        return false;
+    }
+
     private static boolean prevIsArticle(Item prev) {
         return prev != null && prev.isFunc(FunctionWords.Category.ARTICLE);
     }
@@ -304,10 +336,12 @@ public final class RuleBasedTranslationEngine implements TranslationEngine {
         if (prev == null || prev.pos != Pos.NOUN) return false;
         for (int i = prevIndex - 1; i >= 0; i--) {
             Item before = items.get(i);
-            if (before.dropped) continue;
+            // Tinh tu / trang tu bo nghia khong phai tu dan dat: trong "into smaller MODULES
+            // makes it easier" thi tu dan dat cua "modules" la "into", khong phai "smaller".
+            if (before.dropped || before.pos == Pos.ADJ || before.pos == Pos.ADV) continue;
             return before.isFunc(FunctionWords.Category.ARTICLE,
                     FunctionWords.Category.POSSESSIVE, FunctionWords.Category.DEMONSTRATIVE,
-                    FunctionWords.Category.QUANTIFIER);
+                    FunctionWords.Category.QUANTIFIER, FunctionWords.Category.GIOI_TU);
         }
         return true;                                   // danh tu mo dau cau
     }
@@ -457,6 +491,34 @@ public final class RuleBasedTranslationEngine implements TranslationEngine {
     }
 
     // ------------------------------------------------------------------ buoc 4: luat ngu phap
+
+    /**
+     * Cap so sanh: tieng Anh bien hinh ("small" -&gt; "smaller"), tieng Viet them tu
+     * ("nhỏ" -&gt; "nhỏ hơn"). {@link Lemmatizer} da cat duoi -er/-est de tra duoc tu dien,
+     * nhung nghia tra ra la nghia cua dang GOC nen mat han y so sanh: "makes it easier to
+     * maintain" tung ra "dễ" thay vi "dễ hơn", "into smaller modules" ra "nhỏ" thay vi
+     * "nhỏ hơn".
+     *
+     * <p>Chi danh dau khi tu o dang so sanh KHONG phai mot muc tu that. "user", "proper",
+     * "other" cung ket thuc bang -er nhung co muc tu rieng, cham vao la sai.
+     */
+    private void markComparatives(List<Item> items) {
+        for (Item it : items) {
+            if (it.dropped || it.vi == null || it.vi.isBlank()) continue;
+            if (it.pos != Pos.ADJ && it.pos != Pos.ADV) continue;
+            String w = it.source.toLowerCase(Locale.ROOT);
+            String suffix;
+            if (w.endsWith("est") && w.length() > 5) suffix = " nhất";
+            else if (w.endsWith("er") && w.length() > 4) suffix = " hơn";
+            else continue;
+            // Phai la tu KHONG co muc tu rieng, tuc la vua tra duoc nho lemma hoa. Dung
+            // resolve().isPresent() thi bao gio cung true vi resolve() tu lemma hoa lay -
+            // da mac dung loi nay, "older" khong bao gio duoc them "hơn".
+            var resolved = lookup.resolve(w);
+            if (resolved.isEmpty() || !resolved.get().viaLemma()) continue;
+            it.vi = it.vi + suffix;
+        }
+    }
 
     private static void applyGrammarRules(List<Item> items) {
         mergeAdverbIntoAdjective(items);

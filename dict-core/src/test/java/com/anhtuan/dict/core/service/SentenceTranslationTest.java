@@ -59,7 +59,9 @@ class SentenceTranslationTest {
                         List.of()),
                 // Bay 2: dang chia co muc tu rieng va chi mang tu loai danh tu
                 entry("reading", null, List.of(sense("danh từ", "sự đọc, sự đọc sách")), List.of()),
-                entry("read", null, List.of(sense("động từ", "đọc, đọc sách")), List.of()));
+                entry("read", null, List.of(sense("động từ", "đọc, đọc sách")), List.of()),
+                // Bay 3: cum nhieu tu la DANH TU, khong phai cum dong tu nhu trong nguon 109K
+                entry("use case", null, List.of(sense("danh từ", "ca sử dụng")), List.of()));
     }
 
     @BeforeEach
@@ -117,6 +119,51 @@ class SentenceTranslationTest {
     void partOfSpeechDecidesTheMeaning() {
         assertTrue(translate("The system could not work").endsWith("làm việc"),
                 "phai lay nghia dong tu \"làm việc\", khong phai danh tu \"sự làm việc\"");
+    }
+
+    @Test
+    @DisplayName("câu mệnh lệnh: từ đầu câu có nghĩa động từ thì là động từ")
+    void sentenceInitialWordIsImperative() {
+        // Van phong de bai va tai lieu ky thuat gan nhu toan cau menh lenh. Khong co luat nay
+        // thi "Book" lay nghia danh tu "sách".
+        assertEquals("Đặt trước chợ", translate("Book the market"));
+    }
+
+    @Test
+    @DisplayName("liệt kê động từ: vế sau dấu phẩy và \"and\" cũng là động từ")
+    void verbListKeepsVerbSense() {
+        // "work" sau dau phay phai lay nghia dong tu "làm việc", khong phai "sự làm việc".
+        assertEquals("Đọc, làm việc, và đặt trước", translate("Read, work, and book"));
+    }
+
+    @Test
+    @DisplayName("số đếm đứng trước danh từ và không bị tra từ điển")
+    void numeralsStayBeforeTheNoun() {
+        // "four" khong co trong bang hu tu thi bi tra nguon 109K va ra nghia co
+        // "chứng khoán lãi 4 qịu" - da do that tren tai lieu.
+        assertEquals("Bốn sách", translate("The four books"));
+    }
+
+    @Test
+    @DisplayName("cấp so sánh: older -> già hơn")
+    void comparativeAddsMarker() {
+        // Lemmatizer cat duoi -er de tra duoc tu dien, nen nghia tra ra mat han y so sanh.
+        assertEquals("Hệ thống già hơn", translate("The older system"));
+    }
+
+    @Test
+    @DisplayName("including là giới từ, không phải tính từ bổ nghĩa")
+    void participialPrepositionStaysBeforeItsObject() {
+        // Tu dien ghi "including" la tinh tu, de nguyen thi buoc sap lai danh ngu day no ra
+        // sau danh tu: "gồm cả việc" thanh "việc gồm cả".
+        assertEquals("Sách gồm cả việc", translate("The book including the job"));
+    }
+
+    @Test
+    @DisplayName("cụm nhiều từ mang từ loại danh từ thì tham gia sắp lại danh ngữ")
+    void multiWordNounJoinsNounPhraseReorder() {
+        // Truoc day moi cum nhieu tu bi coi la cum dong tu, nen tinh tu khong duoc day ra sau.
+        assertEquals("Ca sử dụng tốt", translate("A good use case"));
     }
 
     @Test
