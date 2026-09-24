@@ -16,6 +16,7 @@ import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.concurrent.Task;
+import com.anhtuan.dict.desktop.config.AppVersion;
 import com.anhtuan.dict.desktop.config.NmtSupport;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
@@ -99,7 +100,7 @@ public final class MainView {
                 new KeyCodeCombination(KeyCode.L, KeyCombination.CONTROL_DOWN),
                 () -> { input.requestFocus(); input.selectAll(); });
 
-        stage.setTitle("Từ điển offline Anh - Việt");
+        stage.setTitle("Từ điển offline Anh - Việt  " + AppVersion.display());
         stage.setScene(scene);
         stage.show();
         input.requestFocus();
@@ -400,8 +401,8 @@ public final class MainView {
                 """));
         resultHolder.getChildren().setAll(box);
         status.setText(String.format(Locale.ROOT,
-                "%,d mục từ · %,d khoá tra cứu · nạp dữ liệu trong %d ms · dữ liệu: %s",
-                ctx.pack().entryCount(), ctx.pack().keyCount(), ctx.startupMillis(),
-                ctx.dataDir().toAbsolutePath()));
+                "%s · %,d mục từ · %,d khoá tra cứu · nạp dữ liệu trong %d ms · dữ liệu: %s",
+                AppVersion.display(), ctx.pack().entryCount(), ctx.pack().keyCount(),
+                ctx.startupMillis(), ctx.dataDir().toAbsolutePath()));
     }
 }

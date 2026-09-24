@@ -49,7 +49,25 @@
          sqlite-jdbc se duoc them lai o M6 khi thuc su can luu lich su nguoi dung. -->
   </dependencies>
 
+  <properties>
+    <!-- Ban phat hanh: "thuong" hoac "ai". Bo dong goi ghi de bang -Ddict.edition=ai. -->
+    <dict.edition>thuong</dict.edition>
+  </properties>
+
   <build>
+    <resources>
+      <!-- Loc version.properties de app biet minh la phien ban nao, ban nao. -->
+      <resource>
+        <directory>src/main/resources</directory>
+        <filtering>true</filtering>
+        <includes><include>version.properties</include></includes>
+      </resource>
+      <resource>
+        <directory>src/main/resources</directory>
+        <filtering>false</filtering>
+        <excludes><exclude>version.properties</exclude></excludes>
+      </resource>
+    </resources>
     <plugins>
       <plugin>
         <groupId>org.openjfx</groupId>
