@@ -12,7 +12,10 @@
 #>
 param(
     [ValidateSet("app-image", "msi", "exe")][string]$Type = "app-image",
-    [switch]$Zip
+    [switch]$Zip,
+    # Kem theo mo hinh dich may no-ron (~98 MB mo hinh + ~15 MB thu vien ONNX Runtime).
+    # Khong bat thi ban dong goi khong co AI, va o "dung mo hinh AI" khong hien ra.
+    [switch]$WithNmt
 )
 $ErrorActionPreference = "Stop"
 $root = Split-Path $PSScriptRoot -Parent
@@ -37,7 +40,33 @@ New-Item -ItemType Directory -Force -Path $stage, "$stage\javafx", "$stage\data"
 
 Copy-Item "app-desktop\target\app-desktop-*.jar" "$stage\app-desktop.jar"
 Copy-Item "dict-core\target\dict-core-*.jar"     "$stage\dict-core.jar"
-Copy-Item "$dataDir\*"                            "$stage\data\"
+Copy-Item "$dataDir\*" "$stage\data\" -Recurse -Exclude "nmt-en-vi"
+
+# Mo hinh AI: chi kem khi duoc yeu cau. No nang gan gap doi ca ung dung con lai.
+$nmtSrc = Join-Path $dataDir "nmt-en-vi"
+if ($WithNmt) {
+    if (-not (Test-Path $nmtSrc)) { throw "Chua co mo hinh. Chay: .\scripts\tai-model-nmt.ps1" }
+    Write-Host "==> Kem theo mo hinh AI (98 MB)..." -ForegroundColor Yellow
+    Copy-Item $nmtSrc "$stage\data\nmt-en-vi" -Recurse
+    Copy-Item "nmt-engine\target\nmt-engine-*.jar" "$stage\nmt-engine.jar"
+    $onnxDir = Join-Path $env:USERPROFILE ".m2\repository\com\microsoft\onnxruntime\onnxruntime"
+    $onnxJar = Get-ChildItem $onnxDir -Recurse -Filter "onnxruntime-*.jar" | Select-Object -First 1
+    if (-not $onnxJar) { throw "Khong thay jar ONNX Runtime trong kho Maven" }
+
+    # Jar goc 132 MB vi kem thu vien native cua CA BON nen tang (linux, macOS...).
+    # Ban cai cho Windows chi can win-x64; bo phan con lai tiet kiem ~110 MB.
+    $unpack = Join-Path $dist "onnx-unpack"
+    if (Test-Path $unpack) { Remove-Item $unpack -Recurse -Force }
+    Expand-Archive -Path $onnxJar.FullName -DestinationPath $unpack
+    Get-ChildItem (Join-Path $unpack "ai\onnxruntime\native") -Directory |
+        Where-Object { $_.Name -ne "win-x64" } |
+        ForEach-Object { Remove-Item $_.FullName -Recurse -Force }
+    Compress-Archive -Path (Join-Path $unpack "*") -DestinationPath "$stage\onnxruntime.zip" -Force
+    Move-Item "$stage\onnxruntime.zip" "$stage\onnxruntime.jar" -Force
+    Remove-Item $unpack -Recurse -Force
+} else {
+    Write-Host "==> Ban KHONG kem mo hinh AI (dung -WithNmt neu muon)" -ForegroundColor DarkGray
+}
 
 # JavaFX: jpackage nem MOI jar trong thu muc dau vao (ke ca thu muc con) vao classpath,
 # nen khong the vua de day vua khai bao module path - trung module thi app chet im lang.
@@ -57,6 +86,20 @@ foreach ($mod in @("javafx-base", "javafx-graphics", "javafx-controls")) {
 $out = Join-Path $dist $Type
 if (Test-Path $out) { Remove-Item $out -Recurse -Force }
 New-Item -ItemType Directory -Force -Path $out | Out-Null
+
+# WiX: jpackage can candle.exe/light.exe (WiX 3.x) tren PATH de lam .msi/.exe.
+# Tim ban da cai, khong co thi tim ban portable trong tools\wix cua du an.
+if ($Type -ne "app-image") {
+    if (-not (Get-Command candle.exe -ErrorAction SilentlyContinue)) {
+        $portable = Join-Path $root "tools\wix"
+        if (Test-Path (Join-Path $portable "candle.exe")) {
+            $env:PATH = "$portable;$env:PATH"
+            Write-Host "==> Dung WiX portable o $portable" -ForegroundColor DarkGray
+        } else {
+            throw "Kieu $Type can WiX Toolset 3.x (candle.exe, light.exe) ma may chua co. Tai https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314-binaries.zip roi giai nen vao $portable, hoac cu dung -Type app-image."
+        }
+    }
+}
 
 Write-Host "==> jpackage --type $Type ..." -ForegroundColor Cyan
 $jpArgs = @(

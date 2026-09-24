@@ -25,3 +25,7 @@ Thumbs.db
 /dist/
 *.msi
 *.exe
+
+# WiX portable tai ve de lam bo cai .msi (41 MB), sinh lai duoc
+/tools/
+

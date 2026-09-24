@@ -12,7 +12,9 @@
 param(
     [string]$Query,
     [ValidateSet("word", "sentence", "reverse")][string]$Mode = "word",
-    [switch]$Rebuild
+    [switch]$Rebuild,
+    # Bat san o "dung mo hinh AI tren may". Can da chay scripts/tai-model-nmt.ps1 truoc.
+    [switch]$Nmt
 )
 $ErrorActionPreference = "Stop"
 $root = Split-Path $PSScriptRoot -Parent
@@ -37,7 +39,16 @@ if ($Rebuild -or -not (Test-Path $pack)) {
     if ($LASTEXITCODE -ne 0) { throw "build du lieu that bai" }
 }
 
-# 3. Duong dan module cua JavaFX, lay thang tu kho Maven cuc bo
+# 3. Classpath day du (gom ca nmt-engine neu da build) - de Maven tu tinh
+& mvn -q -pl app-desktop dependency:build-classpath "-Dmdep.outputFile=target/cp.txt" | Out-Null
+$cp = "app-desktop\target\classes;dict-core\target\classes"
+$cpFile = "app-desktop\target\cp.txt"
+if (Test-Path $cpFile) {
+    $extra = (Get-Content $cpFile -Raw).Trim() -split ';' | Where-Object { $_ -notmatch 'junit|opentest4j|apiguardian|jspecify|javafx' }
+    if ($extra) { $cp = $cp + ';' + ($extra -join ';') }
+}
+
+# 4. Duong dan module cua JavaFX, lay thang tu kho Maven cuc bo
 $m2 = Join-Path $env:USERPROFILE ".m2\repository\org\openjfx"
 $fx = "25.0.4"
 $jars = @("javafx-base", "javafx-graphics", "javafx-controls") | ForEach-Object {
@@ -47,14 +58,15 @@ $missing = $jars | Where-Object { -not (Test-Path $_) }
 if ($missing) { throw "Thieu jar JavaFX: $missing`nChay `mvn -pl app-desktop compile` truoc." }
 $modulePath = $jars -join ";"
 
-# 4. Chay
+# 5. Chay
 $jvm = @(
     "--module-path", $modulePath,
     "--add-modules", "javafx.controls",
     "--enable-native-access=javafx.graphics",
-    "-cp", "app-desktop\target\classes;dict-core\target\classes"
+    "-cp", $cp
 )
 if ($Query) { $jvm += "-Ddict.query=$Query"; $jvm += "-Ddict.mode=$Mode" }
+if ($Nmt) { $jvm += "-Ddict.nmt=true"; $jvm += "--enable-native-access=ALL-UNNAMED" }
 $jvm += "com.anhtuan.dict.desktop.DictApp"
 
 Write-Host "==> Chay app..." -ForegroundColor Cyan
