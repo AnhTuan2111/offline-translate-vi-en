@@ -78,8 +78,18 @@ final class VerifyCommand {
             // Nen THEO BLOCK de tra cuu ngau nhien duoc thi phai tra gia ~20 diem ty le nen.
             check("dict.pack <= 8,0 MB", Files.size(pack) <= 8.0 * 1024 * 1024,
                     ImporterMain.mb(Files.size(pack)));
-            check("108.854 entry", reader.entryCount() == 108_854,
-                    String.format("%,d", reader.entryCount()));
+            // Tu khi co nhieu nguon (M7), tong so entry phu thuoc vao so nguon da build.
+            // Cai bat bien that su la: nguon 109K phai ra dung 108.854 muc, va tong pack
+            // phai bang tong cac nguon - lech mot muc la co nguon bi doc thieu.
+            int fromMain = catalog.all().stream()
+                    .filter(src -> "anhviet109k".equals(src.format()))
+                    .mapToInt(src -> src.entries()).sum();
+            check("nguon 109K cho dung 108.854 entry", fromMain == 108_854,
+                    String.format("%,d", fromMain));
+
+            int declared = catalog.all().stream().mapToInt(src -> src.entries()).sum();
+            check("tong pack = tong cac nguon", reader.entryCount() == declared,
+                    String.format("%,d entry tu %d nguon", reader.entryCount(), catalog.size()));
             check("KEYS >= 120.000 khoa (co khoa bi danh)", reader.keyCount() >= 120_000,
                     String.format("%,d khoa cho %,d entry", reader.keyCount(), reader.entryCount()));
             check("heap sau khi mo pack < 5 MB", heapAfter - heapBefore < 5 * 1024 * 1024,
