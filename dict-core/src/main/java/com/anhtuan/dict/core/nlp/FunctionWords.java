@@ -138,9 +138,29 @@ public final class FunctionWords {
         put("other", "khác", Category.QUANTIFIER);
         put("another", "một cái khác", Category.QUANTIFIER);
         put("such", "như vậy", Category.QUANTIFIER);
+        // So dem. Thieu chung thi chung bi tra tu dien nhu danh tu thuong, va nghia dau bang
+        // cua "four" trong nguon 109K la "chứng khoán lãi 4 qịu (sử học) bốn xu rượu" - da do
+        // that voi "the four stages". Them ca cum truoc danh tu cho dung trat tu tieng Viet.
         put("one", "một", Category.QUANTIFIER);
         put("two", "hai", Category.QUANTIFIER);
         put("three", "ba", Category.QUANTIFIER);
+        put("four", "bốn", Category.QUANTIFIER);
+        put("five", "năm", Category.QUANTIFIER);
+        put("six", "sáu", Category.QUANTIFIER);
+        put("seven", "bảy", Category.QUANTIFIER);
+        put("eight", "tám", Category.QUANTIFIER);
+        put("nine", "chín", Category.QUANTIFIER);
+        put("ten", "mười", Category.QUANTIFIER);
+        put("eleven", "mười một", Category.QUANTIFIER);
+        put("twelve", "mười hai", Category.QUANTIFIER);
+        put("twenty", "hai mươi", Category.QUANTIFIER);
+        put("thirty", "ba mươi", Category.QUANTIFIER);
+        put("forty", "bốn mươi", Category.QUANTIFIER);
+        put("fifty", "năm mươi", Category.QUANTIFIER);
+        put("hundred", "trăm", Category.QUANTIFIER);
+        put("thousand", "nghìn", Category.QUANTIFIER);
+        put("million", "triệu", Category.QUANTIFIER);
+        put("billion", "tỷ", Category.QUANTIFIER);
 
         // --- to be ---
         put("am", "là", Category.BE);
@@ -201,6 +221,15 @@ public final class FunctionWords {
         put("among", "trong số", Category.GIOI_TU);
         put("through", "qua", Category.GIOI_TU);
         put("during", "trong suốt", Category.GIOI_TU);
+        // Phan tu hien tai lam gioi tu. Tu dien ghi chung la tinh tu, nen khong chot o day thi
+        // buoc sap lai danh ngu day chung ra sau danh tu: "including preconditions" ra
+        // "điều kiện tiên quyết kể cả". Day la tap dong, liet ke duoc het.
+        put("including", "gồm cả", Category.GIOI_TU);
+        put("excluding", "không tính", Category.GIOI_TU);
+        put("regarding", "về", Category.GIOI_TU);
+        put("concerning", "về", Category.GIOI_TU);
+        put("considering", "xét đến", Category.GIOI_TU);
+        put("depending on", "tuỳ theo", Category.GIOI_TU);
         put("without", "không có", Category.GIOI_TU);
         put("against", "chống lại", Category.GIOI_TU);
         put("towards", "về phía", Category.GIOI_TU);
