@@ -40,6 +40,13 @@ public final class ImporterMain {
             System.exit(failed == 0 ? 0 : 1);
             return;
         }
+        if (cmd.equals("lexicon")) {
+            if (args.length < 5) { usage(); System.exit(2); }
+            int maxSentences = args.length >= 6 ? Integer.parseInt(args[5]) : 1_200_000;
+            new LexiconCommand().run(Path.of(args[1]), Path.of(args[2]), Path.of(args[3]),
+                    Path.of(args[4]), maxSentences);
+            return;
+        }
         if (cmd.equals("query")) {
             if (args.length < 4) { usage(); System.exit(2); }
             new SearchCommand(Path.of(args[1])).run(args[2], String.join(" ",
@@ -188,6 +195,8 @@ public final class ImporterMain {
 
                   verify <outDir>                chay tieu chi nghiem thu M2/M3/M4
                   query  <outDir> en|vi|sent <truy van>   soi ket qua tra cuu
+                  lexicon <tudien.txt> <kho.en> <kho.vi> <outDir> [soCau]
+                                                 hoc bang xac suat dich tu
                 """);
     }
 
