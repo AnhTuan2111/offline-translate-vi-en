@@ -55,6 +55,17 @@ public final class OnnxNmtEngine implements TranslationEngine, Closeable {
     private static final int MAX_INPUT_TOKENS = 200;
     private static final int MAX_OUTPUT_TOKENS = 256;
 
+    /**
+     * Cam sinh lai mot day {@value} tu da tung xuat hien.
+     *
+     * <p>Giai ma greedy co mot benh kinh dien: gap cau KHONG DU chu ngu - vi ngu (dong tieu de,
+     * gach dau dong) thi no khong biet dung o dau va lap mot cum den het gioi han. Do thuc te
+     * tren 13 cau van ban ky thuat that: 4 cau bi lap, vi du "kích thước kích thước, kích
+     * thước, dự án dự án thời gian dự án". Chan n-gram lap la cach re nhat de chua - beam
+     * search moi la cach dung, nhung dat hon nhieu.
+     */
+    private static final int NO_REPEAT_NGRAM = 3;
+
     private final OrtEnvironment env;
     private final OrtSession encoder;
     private final OrtSession decoder;
@@ -129,7 +140,7 @@ public final class OnnxNmtEngine implements TranslationEngine, Closeable {
     }
 
     private String translateToString(String sentence) {
-        long[] ids = tokenizer.encode(sentence);
+        long[] ids = tokenizer.encode(endWithPunctuation(sentence));
         if (ids.length > MAX_INPUT_TOKENS) ids = Arrays.copyOf(ids, MAX_INPUT_TOKENS);
 
         long[] maskRow = new long[ids.length];
@@ -149,6 +160,37 @@ public final class OnnxNmtEngine implements TranslationEngine, Closeable {
         } catch (OrtException e) {
             throw new IllegalStateException("loi khi chay mo hinh: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Them dau cham neu cau chua co dau ket thuc.
+     *
+     * <p>Model duoc huan luyen tren CAU HOAN CHINH. Dua vao mot manh cau khong dau cham -
+     * kieu dong gach dau dong trong de thi - thi no khong co tin hieu nao de dung, va de roi
+     * vao vong lap. Them mot dau cham la sua duoc phan lon.
+     */
+    private static String endWithPunctuation(String sentence) {
+        String trimmed = sentence.strip();
+        if (trimmed.isEmpty()) return trimmed;
+        char last = trimmed.charAt(trimmed.length() - 1);
+        return ".!?:;\"')]".indexOf(last) >= 0 ? trimmed : trimmed + ".";
+    }
+
+    /**
+     * Cac tu bi cam o buoc hien tai vi sinh ra chung se tao mot n-gram da co.
+     *
+     * <p>Nhin {@value #NO_REPEAT_NGRAM}-1 tu vua sinh, tim trong phan da sinh xem day do da
+     * xuat hien chua; neu roi thi tu di ngay sau no lan truoc bi cam lan nay.
+     */
+    private static java.util.Set<Integer> bannedTokens(List<Integer> generated) {
+        int n = NO_REPEAT_NGRAM;
+        if (generated.size() < n) return java.util.Set.of();
+        java.util.Set<Integer> banned = new java.util.HashSet<>(4);
+        List<Integer> suffix = generated.subList(generated.size() - (n - 1), generated.size());
+        for (int i = 0; i + n <= generated.size(); i++) {
+            if (generated.subList(i, i + n - 1).equals(suffix)) banned.add(generated.get(i + n - 1));
+        }
+        return banned;
     }
 
     /**
@@ -176,10 +218,12 @@ public final class OnnxNmtEngine implements TranslationEngine, Closeable {
                     float[][][] logits = (float[][][]) result.get(0).getValue();
                     float[] last = logits[0][decoderIds.length - 1];
 
+                    java.util.Set<Integer> banned = bannedTokens(generated);
                     int best = -1;
                     float bestScore = Float.NEGATIVE_INFINITY;
                     for (int v = 0; v < last.length; v++) {
                         if (v == MarianTokenizer.PAD_ID) continue;
+                        if (banned.contains(v)) continue;
                         if (last[v] > bestScore) { bestScore = last[v]; best = v; }
                     }
                     if (best < 0 || best == MarianTokenizer.EOS_ID) break;
